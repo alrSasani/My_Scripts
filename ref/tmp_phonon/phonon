@@ -1,0 +1,134 @@
+******************************************************************************************
+                                Welcome to MULTIBINIT,                         
+ a software platform designed for the construction and use of second-principles models
+                   for lattice, spin and electron degrees of freedom.
+
+.Version 9.8.2 of MULTIBINIT 
+.(MPI version, prepared for a x86_64_linux_gnu11.4 computer) 
+
+.Copyright (C) 1998-2022 ABINIT group . 
+ MULTIBINIT comes with ABSOLUTELY NO WARRANTY.
+ It is free software, and you are welcome to redistribute it
+ under certain conditions (GNU General Public License,
+ see ~abinit/COPYING or http://www.gnu.org/copyleft/gpl.txt).
+
+ MULTIBINIT is a software project of the University of Liege
+ (PHYTHEMA & NANOMAT groups), in collaboration with other partners.
+
+-----------------------------------------------------------------------------------------
+
+                          MULTIBINIT - LATTICE MODELS                   
+
+ Project initiated and coordinated by Philippe GHOSEZ and his group at ULiege
+   (Philippe.Ghosez@uliege.be).
+
+ Main contributors: Alexandre MARTIN, Jordan BIEDER, Michael Marcus SCHMITT,
+   Louis BASTOGNE, Xu HE, Alireza SASANI, Huazhang ZHANG, Subhadeep BANDYOPADHYAY,
+   Philippe GHOSEZ.
+
+ Technical support: Xu HE (X.He@uliege.be)
+
+*****************************************************************************************
+
+
+
+.Starting date : Wed 20 Sep 2023.
+- ( at 09h59 )
+  
+-  nproc =    1
+
+================================================================================
+
+ Read the information in the reference structure in 
+-/home/alireza/CODES/GIT_HUB/My_Scripts/src_xmls/Har_xml_8812
+ to initialize the multibinit input
+
+================================================================================
+
+ -outvars_multibinit: echo values of input variables ----------------------
+
+ Flags : 
+     ifcflag         1
+     strcpli        -1
+ Miscellaneous information :
+         asr         2
+ Interatomic Force Constants Inputs :
+      dipdip         1
+dipdip_range         1         1         1
+  dipdip_prt         1
+      ifcana         0
+      ifcout   2000000
+      natifc         5
+       atifc         1   2   3   4   5
+ Description of grid 1 :
+        brav         1
+       ngqpt         8         8         8
+      nqshft         1
+      q1shft
+                     0.00000000E+00  0.00000000E+00  0.00000000E+00
+ First list of wavevector (reduced coord.) :
+       nph1l         1
+       qph1l
+                     0.00000000E+00  0.00000000E+00  0.00000000E+00    0.000E+00
+
+================================================================================
+
+-Opening the file /home/alireza/CODES/GIT_HUB/My_Scripts/src_xmls/Har_xml_8812
+-Reading the file /home/alireza/CODES/GIT_HUB/My_Scripts/src_xmls/Har_xml_8812 with Fortran
+
+ Bound for ifc SR:
+
+ x=[ -2  2], y=[ -2  2] and z=[ -2  2]
+
+================================================================================
+ Generation of new ifc
+
+ dipdip is set to one, the dipole-dipole interation is recompute.
+
+ Bound for ifc (LR):
+
+ x=[  0  0], y=[  0  0] and z=[  0  0]
+
+ Computation of new dipole-dipole interaction.
+
+ Impose acoustic sum rule on total ifc
+
+================================================================================
+
+ Read the coefficients of the polynomial fit from XML and perform some checks
+
+-Opening the file /home/alireza/CODES/GIT_HUB/My_Scripts/src_xmls/AnHar_xml_8812
+-Reading the file /home/alireza/CODES/GIT_HUB/My_Scripts/src_xmls/AnHar_xml_8812 with Fortran
+
+================================================================================
+
+TEST - SET Option
+-Reading the test-set file :
+-Phonon_dist_HIST.nc
+
+
+--------------------------------------------------------------------------------
+
+test_prt_ph == 1, write evulation of Model on the TEST-set into ph_test.nc
+
+
+--------------------------------------------------------------------------------
+
+ Goal function values of the effective.potential
+ with respect to the test-set (eV^2/A^2):
+   Energy          :   1.3154420706602826E+06
+   Forces+Stresses :   3.5699198556271377E-04
+   Forces          :   3.5678158352719295E-04
+   Stresses        :   2.1040203552080038E-07
+
+
+================================================================================
+
+-
+- Proc.   0 individual time (sec): cpu=          4.2  wall=          4.3
+
+================================================================================
+
++Total cpu time      4.250  and wall time      4.264 sec
+
+ multibinit : the run completed succesfully.

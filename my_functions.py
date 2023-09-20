@@ -664,11 +664,16 @@ def DDB_IFC_phonon(phonon,ngqpt,str_ten,UC=None,BEC_in=None,eps_inf_in=None,mod_
 
 
 def str_mult(a,b):
+    '''this function returns multiplication of two strings as like :
+        a   >  x      b   >>    a result    >   a x'''
     my_list = [*a.split(),*b.split()]
     my_list.sort()
+    print('a   > ',a,'     b   >>   ',b, 'result    >  ',' '.join(my_list))    
     return(' '.join(my_list))
 
 def terms_mult(T_1,T_2):
+    '''This function returns multiplication of two terms T_1 and T_2 
+    T1  >   {'z': 1, 'c': 1}  T2  >  {'z': 1, 'c': 1}  ===>   T1T2  > {'z z': 1, 'c z': 2, 'c c': 1}'''
     T1T2 = {}
     for i in T_1.keys():
         for j in T_2.keys():
@@ -680,12 +685,15 @@ def terms_mult(T_1,T_2):
     return(T1T2)
 
 def get_pwr_N(T1,n):
+    '''This function return term T1 to the power of n'''
     if n-1!=0:
         return(terms_mult(get_pwr_N(T1,n-1),T1))
     else:
         return(T1)
 
 def re_order_terms(T1):
+    '''This function changes a dictionary written as {' x x x : 1} to {x^3 : 1}
+    T1  >>   {'  x': 0.2, ' ': 0.010000000000000002} Fin_dict >>   {'x^1': 0.2, '': 0.010000000000000002}'''
     fin_dict = {}
     for key in T1.keys():
         my_pwr_list = {}
@@ -705,6 +713,7 @@ def re_order_terms(T1):
         New_key = ' '.join(New_key)
         fin_dict[New_key] = T1[key]
     return(fin_dict)
+
 
 def get_terms_diff(trms1,trms2):
     diff_list = []

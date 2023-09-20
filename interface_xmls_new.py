@@ -671,31 +671,6 @@ class Har_interface:
         out_xml.write('</System_definition>')
         out_xml.close()
 
-    def find_intrfc_atms(self):
-        mdl_layer = []
-        CPOS_SC1 = self.mySC1.get_positions()
-        zmax = 0
-        for i in range(len(CPOS_SC1)):
-            if zmax <= CPOS_SC1[i, 2]:
-                zmax = CPOS_SC1[i, 2]
-        tmp_SC1 = make_supercell(self.UC_atoms1, self.SC_mat2)
-        SL1 = make_SL(self.mySC1, tmp_SC1)
-        CPOS_SL1 = SL1.get_positions()
-        for i in range(len(CPOS_SL1)):
-            if abs(CPOS_SL1[i, 2]-zmax) < 0.001:
-                mdl_layer.append(i)
-        finl_layer = []
-        zmax = 0
-        for i in range(len(CPOS_SL1)):
-            if zmax <= CPOS_SL1[i, 2]:
-                zmax = CPOS_SL1[i, 2]
-
-        for i in range(len(CPOS_SL1)):
-            if abs(CPOS_SL1[i, 2]-zmax) < 0.001:
-                finl_layer.append(i)
-
-        return(mdl_layer, finl_layer)
-
     def asr_impose(self):
         #print('ASR imposing')
         for atm_i in range(len(self.my_atm_list)):
@@ -929,7 +904,7 @@ class Har_interface:
 # interface Anharmonic potential generation:
 
 class Anh_intrface(Har_interface):
-    def __init__(self, har_xml1, anh_xml1, SC_mat1, har_xml2, anh_xml2, SC_mat2, miss_fit_trms=False, symmetric=False,voigt_missfit=None, miss_fit_id = None):
+    def __init__(self, har_xml1, anh_xml1, SC_mat1, har_xml2, anh_xml2, SC_mat2, symmetric=False, miss_fit_trms=False,voigt_missfit=None, miss_fit_id = None):
         Har_interface.__init__(self, har_xml1, SC_mat1,
                                har_xml2, SC_mat2, symmetric=symmetric)
         self.coeff = {}
@@ -950,10 +925,12 @@ class Anh_intrface(Har_interface):
             self.get_FC_weight(req_symbs=req_elemtsns)
 
     def STRC_trms(self, id_in='0'):
+        # missfit_elastin = True
         id_pars = {'0': '1', '1': '0'}
         tol_04 = 10**-4
         UC_STR = self.uc_atoms[str(0)]
         coeff, trms = self.coeff[id_in], self.terms[id_in]
+        print(trms[-1])
         Xred_STRC = self.STRC.get_scaled_positions()
         STRC_cell = self.STRC.get_cell()
         inv_STRC_cell = np.linalg.inv(STRC_cell)
@@ -967,8 +944,10 @@ class Anh_intrface(Har_interface):
         # else:
         #     my_strain = [0,0,0]
         # print(my_strain)
-        my_strain = [0.1,0.1,0.1] #self.get_strain(id_in)
+        my_strain = [0.1,0.2,0.3] #self.get_strain(id_in)
+        # print(trms[-1])
         print(my_strain)
+        
         temp_voits = []
         strain_flag = []
         stain_flag_inp = []
@@ -998,6 +977,13 @@ class Anh_intrface(Har_interface):
                 coeff[total_coefs+ntrm_cntr] = new_coeffs[ntrm_cntr]
             print(f'number of Missfit Coeffiecinets for material {id_in} is {len(new_coeffs)}')
         ####################################
+        if self.voigt_missfit is not None:            
+            total_coefs = len(coeff)
+            new_coeffs, new_trms = self.get_elas_missfit(id_in,my_strain)
+            # print(new_trms[0])
+            for ntrm_cntr in range(len(new_coeffs)):
+                trms.append(new_trms[ntrm_cntr])
+                coeff[total_coefs+ntrm_cntr] = new_coeffs[ntrm_cntr]
 
         wrapPos = ase.geometry.wrap_positions
         my_terms = []
@@ -1007,7 +993,7 @@ class Anh_intrface(Har_interface):
         for cc in range(len(coeff)):
             tmp_coeffs[cc] = coeff[cc]
             my_terms.append([])
-            my_SAT_terms = trms[cc]
+            my_SAT_terms = trms[cc]  #self.get_SATs(trms[cc][0], hxml)
             for tc in range(len(my_SAT_terms)):
                 for prd1 in range(self.SCMATS[id_in][0, 0]):
                     for prd2 in range(self.SCMATS[id_in][1, 1]):
@@ -1431,19 +1417,18 @@ class Anh_intrface(Har_interface):
     def get_str_phonon_voigt(self, trms, voigts=[1, 2, 3]):
         '''This function returns the number of coefficients that have particulat strain phonon coupling'''
         str_phonon_coeffs = self.find_str_phonon_coeffs(trms)
-        nterm = 0
         str_phonon_voigt = []
         for i in str_phonon_coeffs:
-            found = False
+            voigt_found = False
             for nterm in range(len(trms[i])):
-                if not found:
+                if not voigt_found:
                     nstrain = int(trms[i][nterm][-1]['strain'])
                     ndis = int(trms[i][nterm][-1]['dips'])
                     for l in range(nstrain):
                         my_voigt = int(trms[i][nterm][ndis+l]['voigt'])
                         if my_voigt in voigts:
                             str_phonon_voigt.append(i)
-                            found = True
+                            voigt_found = True
                             break
         return(str_phonon_voigt)
 
@@ -1476,10 +1461,10 @@ class Anh_intrface(Har_interface):
             tem_dic = {}
             for j in range(len(my_str_trms[i])):
                 if j == 0:
-                    tem_dic = my_functions.get_pwr_N(
+                    tem_dic = get_pwr_N(
                         my_str_trms[i][j][0], my_str_trms[i][j][1])
                 else:
-                    tem_dic = my_functions.terms_mult(tem_dic, my_functions.get_pwr_N(
+                    tem_dic = terms_mult(tem_dic, get_pwr_N(
                         my_str_trms[i][j][0], my_str_trms[i][j][1]))
             mult_terms.append(tem_dic)
         return(mult_terms)
@@ -1491,9 +1476,9 @@ class Anh_intrface(Har_interface):
             self.get_new_str_terms(term))
         org_terms = self.get_mult_coeffs(
             self.get_new_str_terms(term,get_org=True))
-        print(10*'---')
-        print(org_terms)
-        print(my_mul_terms)
+        # print(10*'---')
+        # print(org_terms)
+        # print(my_mul_terms)
         for i in range(len(org_terms)):
             for my_key in org_terms[i].keys():
                 del my_mul_terms[i][my_key]
@@ -1572,7 +1557,7 @@ class Anh_intrface(Har_interface):
                         [*my_dis_term, *str_terms, {'dips': ndisp, 'strain': num_str_temrs, 'distance': 0.0}])
                     term_cnre += 1
                 if i_term == 0:
-                    temp_trms = my_functions.re_order_terms(my_terms[0])
+                    temp_trms = re_order_terms(my_terms[0])
                     key_cntr = 0
                     for my_key in temp_trms.keys():
                         tot_nterms += 1
@@ -1594,6 +1579,8 @@ class Anh_intrface(Har_interface):
         new_coeffs = []
         new_temrs = []
         for icoeff in str_phonon_voigt:
+            # print(10*'****----')
+            # print(terms[icoeff][0])
             temp_coeffs,temp_terms = self.get_missfit_term(coeff[icoeff], terms[icoeff], my_tags, my_strain, voigts=[1, 2, 3])
             for cntr in range(len(temp_coeffs)):
                 new_coeffs.append(temp_coeffs[cntr])
@@ -1633,6 +1620,42 @@ class Anh_intrface(Har_interface):
         voigt_str = [strain[0,0],strain[1,1],strain[2,2],(strain[1,2]+strain[2,1])/2,(strain[0,2]+strain[2,0])/2,(strain[0,1]+strain[1,0])/2]
         return(np.array(voigt_str))
 
+    def get_elas_missfit(self,id_in,my_strain):
+        new_coeffs = []
+        new_terms = []
+        my_vogt_dic = {1: 'eta_1', 2: 'eta_2', 3: 'eta_3', 4: 'eta_4', 5: 'eta_5', 6: 'eta_6'}
+        ela_cnst = np.linalg.det(self.SCMATS[id_in])*(self.xmls_objs[id_in].ela_cons)
+        # print(ela_cnst[0:3,0:3])
+        tot_nterms = 1
+        #{'power': ' 2', 'voigt': ' 1'}, {'dips': 0, 'strain': 1, 'distance': 0}]
+        for istr,str_1 in enumerate(my_strain):
+            for jstr,str_2 in enumerate(my_strain):
+                if str_1 !=0 or str_2 != 0 :
+                    if istr == jstr:
+                        new_coeffs.append({'number': str(tot_nterms), 'value': str(ela_cnst[istr,jstr]*str_1), 'text': my_vogt_dic[istr+1]})
+                        new_term = [[{'weight': ' 1.000000'},{'power': ' 1', 'voigt': str(istr+1)}, {'dips': 0, 'strain': 1, 'distance': 0}]]
+                        # SAT_term = self.get_SATs(new_term, self.xmls_objs[id_in])
+                        new_terms.append(new_term)
+                        tot_nterms += 1
+                    else:
+                        if str_1 !=0:
+                            new_coeffs.append({'number': str(tot_nterms), 'value': str(0.5*ela_cnst[istr,jstr]*str_1), 'text': str(my_vogt_dic[istr+1])})
+                            new_term = [[{'weight': ' 1.000000'},{'power': ' 1', 'voigt': str(istr+1)}, {'dips': 0, 'strain': 1, 'distance': 0}]]
+                            # SAT_term = self.get_SATs(new_term, self.xmls_objs[id_in])
+                            new_terms.append(new_term)
+                            tot_nterms += 1
+
+                        if str_2 != 0 :
+                            new_coeffs.append({'number': str(tot_nterms), 'value': str(0.5*ela_cnst[istr,jstr]*str_2), 'text': str(my_vogt_dic[jstr+1])})
+                            new_term = [[{'weight': ' 1.000000'},{'power': ' 1', 'voigt': str(jstr+1)}, {'dips': 0, 'strain': 1, 'distance': 0}]]
+                            # SAT_term = self.get_SATs(new_term, self.xmls_objs[id_in])
+                            new_terms.append(new_term)
+                            tot_nterms += 1
+        # for i in range(tot_nterms-1):
+        #     print(10*'***')
+        #     print(new_coeffs[i])
+        #     print(new_terms[i])
+        return(new_coeffs,new_terms)
 
 class Multipol():
     def str_mult(self, a, b):
@@ -1649,6 +1672,7 @@ class Multipol():
                     T1T2[my_key] = T1T2[my_key] + T_1[i]*T_2[j]
                 else:
                     T1T2[my_key] = T_1[i]*T_2[j]
+
         return(T1T2)
 
     def get_pwr_N(self, T1, n):
@@ -1679,6 +1703,55 @@ class Multipol():
             fin_dict[New_key] = T1[key]
         return(fin_dict)
 
+def str_mult(a,b):
+    '''this function returns multiplication of two strings as like :
+        a   >  x      b   >>    a result    >   a x'''
+    my_list = [*a.split(),*b.split()]
+    my_list.sort() 
+    return(' '.join(my_list))
+
+def terms_mult(T_1,T_2):
+    '''This function returns multiplication of two terms T_1 and T_2 
+    T1  >   {'z': 1, 'c': 1}  T2  >  {'z': 1, 'c': 1}  ===>   T1T2  > {'z z': 1, 'c z': 2, 'c c': 1}'''
+    T1T2 = {}
+    for i in T_1.keys():
+        for j in T_2.keys():
+            my_key = str_mult(i,j)
+            if my_key in T1T2.keys():
+                T1T2[my_key] = T1T2[my_key]+ T_1[i]*T_2[j]
+            else:
+                T1T2[my_key] = T_1[i]*T_2[j]
+    return(T1T2)
+
+def get_pwr_N(T1,n):
+    '''This function return term T1 to the power of n'''
+    if n-1!=0:
+        return(terms_mult(get_pwr_N(T1,n-1),T1))
+    else:
+        return(T1)
+
+def re_order_terms(T1):
+    '''This function changes a dictionary written as {' x x x : 1} to {x^3 : 1}
+    T1  >>   {'  x': 0.2, ' ': 0.010000000000000002} Fin_dict >>   {'x^1': 0.2, '': 0.010000000000000002}'''
+    fin_dict = {}
+    for key in T1.keys():
+        my_pwr_list = {}
+        tmp_key = 0
+        char_0 = ' '
+        pwr_1 = 0
+        for char in key.split():
+            if char_0 == ' ':
+                char_0 = char
+                my_pwr_list[char_0] = 1
+            elif char_0 == char:
+                my_pwr_list[char_0] += 1
+            else:
+                char_0 = char
+                my_pwr_list[char_0] = 1
+        New_key = [tmp_key+'^'+str(my_pwr_list[tmp_key]) for tmp_key in my_pwr_list.keys()]
+        New_key = ' '.join(New_key)
+        fin_dict[New_key] = T1[key]
+    return(fin_dict)
 
 def model_maker(xmlf1, anh_file1, scmat1, xmlf2, anh_file2, scmat2, symmetric=False, miss_fit_trms=False, har_file='int_harmoni.xml', Anhar_file='int_harmoni.xml',negelect_A_SITE=False,negelect_Tot_FCs=False,voigt_missfit=None):
     # Harmonic_term generation
@@ -1696,8 +1769,6 @@ def model_maker(xmlf1, anh_file1, scmat1, xmlf2, anh_file2, scmat2, symmetric=Fa
     return(STRC)
 
 # some simple functions:
-
-
 def anh_terms_mani(har_xml, anh_xml, output='test_mani.xml', terms_to_write=None):
     xmlsys = SC_xml_potential.xml_sys(har_xml)
     xmlsys.get_ase_atoms()
@@ -1713,7 +1784,6 @@ def anh_terms_mani(har_xml, anh_xml, output='test_mani.xml', terms_to_write=None
     anhXml.SC_terms = new_terms
     anhXml.SC_coeff = new_coeffs
     anhXml.wrt_anxml(output)
-
 
 def get_mapped_strcs(str_to_be_map, str_to_map_to, Ret_index=False):
     natom = len(str_to_map_to.get_scaled_positions())
@@ -1763,7 +1833,6 @@ def get_mapped_strcs(str_to_be_map, str_to_map_to, Ret_index=False):
     maped_str = Atoms(numbers=str_to_map_to.get_atomic_numbers(
     ), scaled_positions=xred_maped, cell=str_to_be_map.get_cell())
     return(maped_str)
-
 
 def terms_comp(trms1, trms2):
     disp = []

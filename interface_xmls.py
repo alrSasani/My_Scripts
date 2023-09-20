@@ -967,12 +967,14 @@ class Anh_intrface(Har_interface):
         # else:
         #     my_strain = [0,0,0]
         # print(my_strain)
-        my_strain =  self.get_strain(id_in)
+        my_strain = [0.1,0.1,0.1] #self.get_strain(id_in)
+        print(my_strain)
         temp_voits = []
         strain_flag = []
         stain_flag_inp = []
         for ii,i in enumerate(my_strain):
             if abs(i) >= tol_04:
+                print('Here')
                 strain_flag.append(True)
                 temp_voits.append(ii+1)
                 if self.voigt_missfit is not None and ii+1 in self.voigt_missfit:
@@ -987,7 +989,7 @@ class Anh_intrface(Har_interface):
             temp_voits = self.voigt_missfit
             strain_flag = stain_flag_inp
             
-        print(f' The missfit strains material {id_in} are in directions : ',10*'***',temp_voits, 'in direction ', stain_flag_inp)
+        # print(f' The missfit strains material {id_in} are in directions : ',10*'***',temp_voits, 'in direction ', stain_flag_inp)
         if self.miss_fit_trms and any(strain_flag):           
             my_tags = self.xmls_objs[id_in].tags
             new_coeffs, new_trms = self.get_missfit_terms(
@@ -1424,6 +1426,7 @@ class Anh_intrface(Har_interface):
             ndis = int(trms[i][nterm][-1]['dips'])
             if nstrain != 0 and ndis != 0:
                 self.str_phonon_coeff.append(i)
+        # print(self.str_phonon_coeff)
 
     def get_str_phonon_voigt(self, trms, voigts=[1, 2, 3]):
         self.find_str_phon(trms)
@@ -1443,7 +1446,7 @@ class Anh_intrface(Har_interface):
         vogt_terms = []
         my_vogt_dic = {1: 'x', 2: 'y', 3: 'z', 4: 'xx', 5: 'yy', 6: 'zz'}
         my_vogt_str = {1: 'a', 2: 'b', 3: 'c', 4: 'd', 5: 'e', 6: 'f', }
-        my_voigt_temrs = self.get_str_phonon_voigt(trms, voigts)
+        # my_voigt_temrs = self.get_str_phonon_voigt(trms, voigts)
         if 1:
             # for i in my_voigt_temrs:
             i = my_coeff
@@ -1463,7 +1466,7 @@ class Anh_intrface(Har_interface):
     def get_org_terms(self, trms, my_coeff, nterm=0, voigts=[1, 2, 3]):
         org_terms = []
         my_vogt_dic = {1: 'x', 2: 'y', 3: 'z'}
-        my_voigt_temrs = self.get_str_phonon_voigt(trms, voigts)
+        # my_voigt_temrs = self.get_str_phonon_voigt(trms, voigts)
 
         if 1:
             i = my_coeff
