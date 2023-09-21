@@ -904,7 +904,7 @@ class Har_interface:
 # interface Anharmonic potential generation:
 
 class Anh_intrface(Har_interface):
-    def __init__(self, har_xml1, anh_xml1, SC_mat1, har_xml2, anh_xml2, SC_mat2, symmetric=False, miss_fit_trms=False,voigt_missfit=None, miss_fit_id = None):
+    def __init__(self, har_xml1, anh_xml1, SC_mat1, har_xml2, anh_xml2, SC_mat2, symmetric=False, miss_fit_trms=False,voigt_missfit=None, miss_fit_id = ['0','1']):
         Har_interface.__init__(self, har_xml1, SC_mat1,
                                har_xml2, SC_mat2, symmetric=symmetric)
         self.coeff = {}
@@ -918,6 +918,7 @@ class Anh_intrface(Har_interface):
             anh_xml2, self.uc_atoms['1'])
         self.has_weight = False
         self.miss_fit_trms = miss_fit_trms
+        self.miss_fit_id = miss_fit_id
         # self.Constr_SL(symmetric)
         self.get_match_pairs()
         if not self.has_weight:
@@ -925,12 +926,11 @@ class Anh_intrface(Har_interface):
             self.get_FC_weight(req_symbs=req_elemtsns)
 
     def STRC_trms(self, id_in='0'):
-        # missfit_elastin = True
         id_pars = {'0': '1', '1': '0'}
         tol_04 = 10**-4
         UC_STR = self.uc_atoms[str(0)]
         coeff, trms = self.coeff[id_in], self.terms[id_in]
-        print(trms[-1])
+        # print(trms[-1])
         Xred_STRC = self.STRC.get_scaled_positions()
         STRC_cell = self.STRC.get_cell()
         inv_STRC_cell = np.linalg.inv(STRC_cell)
@@ -939,51 +939,44 @@ class Anh_intrface(Har_interface):
         uc_cell = UC_STR.get_cell()
         ###################################
         total_coefs = len(coeff)
-        # if id_in == '0':
-        #     my_strain = self.get_strain(id_in)
-        # else:
-        #     my_strain = [0,0,0]
-        # print(my_strain)
-        my_strain = [0.1,0.2,0.3] #self.get_strain(id_in)
-        # print(trms[-1])
-        print(my_strain)
-        
-        temp_voits = []
-        strain_flag = []
-        stain_flag_inp = []
-        for ii,i in enumerate(my_strain):
-            if abs(i) >= tol_04:
-                strain_flag.append(True)
-                temp_voits.append(ii+1)
-                if self.voigt_missfit is not None and ii+1 in self.voigt_missfit:
-                    stain_flag_inp.append(True)
+        if self.miss_fit_trms:
+            if id_in in self.miss_fit_id:
+                my_strain = self.get_strain(id_in)
+            my_strain = [0.1,0.1,0.1]
 
-            else:
-                strain_flag.append(False)
-                if self.voigt_missfit is not None and ii+1 not in self.voigt_missfit:
-                    stain_flag_inp.append(False)                
+            print(f'The strain for material id {id_in} = ',my_strain)
+            temp_voits = []
+            strain_flag = []
+            stain_flag_inp = []
+            for ii,i in enumerate(my_strain):
+                if abs(i) >= tol_04:
+                    strain_flag.append(True)
+                    temp_voits.append(ii+1)
+                    if self.voigt_missfit is not None and ii+1 in self.voigt_missfit:
+                        stain_flag_inp.append(True)
+                else:
+                    strain_flag.append(False)
+                    if self.voigt_missfit is not None and ii+1 not in self.voigt_missfit:
+                        stain_flag_inp.append(False)                               
+            if self.voigt_missfit is not None:
+                temp_voits = self.voigt_missfit
+                strain_flag = stain_flag_inp
                 
-        if self.voigt_missfit is not None:
-            temp_voits = self.voigt_missfit
-            strain_flag = stain_flag_inp
-            
-        # print(f' The missfit strains material {id_in} are in directions : ',10*'***',temp_voits, 'in direction ', stain_flag_inp)
-        if self.miss_fit_trms and any(strain_flag):           
-            my_tags = self.xmls_objs[id_in].tags
-            new_coeffs, new_trms = self.get_missfit_terms(
-                coeff, trms, my_tags, my_strain, voigts=temp_voits)
-            for ntrm_cntr in range(len(new_coeffs)):
-                trms.append(new_trms[ntrm_cntr])
-                coeff[total_coefs+ntrm_cntr] = new_coeffs[ntrm_cntr]
-            print(f'number of Missfit Coeffiecinets for material {id_in} is {len(new_coeffs)}')
-        ####################################
-        if self.voigt_missfit is not None:            
-            total_coefs = len(coeff)
-            new_coeffs, new_trms = self.get_elas_missfit(id_in,my_strain)
-            # print(new_trms[0])
-            for ntrm_cntr in range(len(new_coeffs)):
-                trms.append(new_trms[ntrm_cntr])
-                coeff[total_coefs+ntrm_cntr] = new_coeffs[ntrm_cntr]
+            # print(f' The missfit strains material {id_in} are in directions : ',10*'***',temp_voits, 'in direction ', stain_flag_inp)
+            if any(strain_flag):           
+                my_tags = self.xmls_objs[id_in].tags
+                new_coeffs, new_trms = self.get_missfit_terms(
+                    coeff, trms, my_tags, my_strain, voigts=temp_voits)
+                for ntrm_cntr in range(len(new_coeffs)):
+                    trms.append(new_trms[ntrm_cntr])
+                    coeff[total_coefs+ntrm_cntr] = new_coeffs[ntrm_cntr]
+                print(f'number of Missfit Coeffiecinets for material {id_in} is {len(new_coeffs)}')
+            ####################################          
+                total_coefs = len(coeff)
+                new_coeffs, new_trms = self.get_elas_missfit(id_in,my_strain,voigts=temp_voits)
+                for ntrm_cntr in range(len(new_coeffs)):
+                    trms.append(new_trms[ntrm_cntr])
+                    coeff[total_coefs+ntrm_cntr] = new_coeffs[ntrm_cntr]
 
         wrapPos = ase.geometry.wrap_positions
         my_terms = []
@@ -1410,7 +1403,7 @@ class Anh_intrface(Har_interface):
             # for j in range(len(trms[i])):
             nstrain = int(trms[i][nterm][-1]['strain'])
             ndis = int(trms[i][nterm][-1]['dips'])
-            if nstrain != 0 and ndis != 0:
+            if nstrain != 0  and ndis != 0:
                 str_phonon_coeffs.append(i)
         return(str_phonon_coeffs)
 
@@ -1418,18 +1411,23 @@ class Anh_intrface(Har_interface):
         '''This function returns the number of coefficients that have particulat strain phonon coupling'''
         str_phonon_coeffs = self.find_str_phonon_coeffs(trms)
         str_phonon_voigt = []
+
         for i in str_phonon_coeffs:
             voigt_found = False
             for nterm in range(len(trms[i])):
                 if not voigt_found:
                     nstrain = int(trms[i][nterm][-1]['strain'])
                     ndis = int(trms[i][nterm][-1]['dips'])
+                    if ndis == 0:
+                        ndis = 1
                     for l in range(nstrain):
+                        # print(trms[i][nterm][ndis+l])
                         my_voigt = int(trms[i][nterm][ndis+l]['voigt'])
                         if my_voigt in voigts:
                             str_phonon_voigt.append(i)
                             voigt_found = True
                             break
+        # print(10*'*******')
         return(str_phonon_voigt)
 
     def get_new_str_terms(self, term,get_org=False):
@@ -1442,6 +1440,8 @@ class Anh_intrface(Har_interface):
 
         nstrain = int(term[-1]['strain'])
         ndis = int(term[-1]['dips'])
+        if ndis == 0:
+            ndis = 1
         my_lst = []
         for l in range(nstrain):
             my_voigt = int(term[ndis+l]['voigt'])
@@ -1510,17 +1510,23 @@ class Anh_intrface(Har_interface):
         my_str_phon_term = []
         for i_term,my_term in enumerate(trms): 
             nstrain = int(my_term[-1]['strain'])
-            ndis = int(my_term[-1]['dips'])
+            ndisp = int(my_term[-1]['dips'])
+            if ndisp == 0:
+                ndisp = 1
             voits_found = False
             for l in range(nstrain):
-                my_voigt = int(my_term[ndis+l]['voigt'])
+                my_voigt = int(my_term[ndisp+l]['voigt'])
                 if int(my_voigt) in voigts:
                     voits_found = True
             if voits_found:
                 my_terms = self.get_shifted_terms(
                     my_term, my_strain)
                 ndisp = int(my_term[-1]['dips'])
-                disp_text = self.get_disp_text(my_term,my_tags)
+                if ndisp>0 :
+                    disp_text = self.get_disp_text(my_term,my_tags)
+                else:
+                    disp_text = ''
+                    ndisp = 1                
                 term_cnre = 0
                 for tmp_key in my_terms[0].keys():
                     my_dis_term = copy.deepcopy(my_term[0:ndisp])
@@ -1571,7 +1577,9 @@ class Anh_intrface(Har_interface):
                         new_coeffs.append(new_coeff)
                         key_cntr += 1
         for temp_cntr in range(len(my_str_phon_term)):
+            # print(my_str_phon_term[temp_cntr])
             new_temrs.append(my_str_phon_term[temp_cntr])
+        
         return(new_coeffs, new_temrs)
 
     def get_missfit_terms(self, coeff, terms, my_tags, my_strain, voigts=[1, 2, 3]):
@@ -1620,7 +1628,7 @@ class Anh_intrface(Har_interface):
         voigt_str = [strain[0,0],strain[1,1],strain[2,2],(strain[1,2]+strain[2,1])/2,(strain[0,2]+strain[2,0])/2,(strain[0,1]+strain[1,0])/2]
         return(np.array(voigt_str))
 
-    def get_elas_missfit(self,id_in,my_strain):
+    def get_elas_missfit(self,id_in,my_strain,voigts=[]):
         new_coeffs = []
         new_terms = []
         my_vogt_dic = {1: 'eta_1', 2: 'eta_2', 3: 'eta_3', 4: 'eta_4', 5: 'eta_5', 6: 'eta_6'}
@@ -1628,26 +1636,26 @@ class Anh_intrface(Har_interface):
         # print(ela_cnst[0:3,0:3])
         tot_nterms = 1
         #{'power': ' 2', 'voigt': ' 1'}, {'dips': 0, 'strain': 1, 'distance': 0}]
-        for istr,str_1 in enumerate(my_strain):
-            for jstr,str_2 in enumerate(my_strain):
-                if str_1 !=0 or str_2 != 0 :
-                    if istr == jstr:
-                        new_coeffs.append({'number': str(tot_nterms), 'value': str(ela_cnst[istr,jstr]*str_1), 'text': my_vogt_dic[istr+1]})
-                        new_term = [[{'weight': ' 1.000000'},{'power': ' 1', 'voigt': str(istr+1)}, {'dips': 0, 'strain': 1, 'distance': 0}]]
+        for alpha in voigts:
+            for beta in voigts:
+                if my_strain[alpha-1] !=0 or my_strain[beta-1] != 0:
+                    if alpha == beta:
+                        new_coeffs.append({'number': str(tot_nterms), 'value': str(ela_cnst[alpha,beta]*my_strain[alpha-1]), 'text': my_vogt_dic[alpha]})
+                        new_term = [[{'weight': ' 1.000000'},{'power': ' 1', 'voigt': str(alpha)}, {'dips': 0, 'strain': 1, 'distance': 0}]]
                         # SAT_term = self.get_SATs(new_term, self.xmls_objs[id_in])
                         new_terms.append(new_term)
                         tot_nterms += 1
                     else:
-                        if str_1 !=0:
-                            new_coeffs.append({'number': str(tot_nterms), 'value': str(0.5*ela_cnst[istr,jstr]*str_1), 'text': str(my_vogt_dic[istr+1])})
-                            new_term = [[{'weight': ' 1.000000'},{'power': ' 1', 'voigt': str(istr+1)}, {'dips': 0, 'strain': 1, 'distance': 0}]]
+                        if my_strain[alpha-1] > 0.0001:
+                            new_coeffs.append({'number': str(tot_nterms), 'value': str(0.5*ela_cnst[alpha,beta]*my_strain[alpha-1]), 'text': str(my_vogt_dic[beta])})
+                            new_term = [[{'weight': ' 1.000000'},{'power': ' 1', 'voigt': str(beta)}, {'dips': 0, 'strain': 1, 'distance': 0}]]
                             # SAT_term = self.get_SATs(new_term, self.xmls_objs[id_in])
                             new_terms.append(new_term)
                             tot_nterms += 1
 
-                        if str_2 != 0 :
-                            new_coeffs.append({'number': str(tot_nterms), 'value': str(0.5*ela_cnst[istr,jstr]*str_2), 'text': str(my_vogt_dic[jstr+1])})
-                            new_term = [[{'weight': ' 1.000000'},{'power': ' 1', 'voigt': str(jstr+1)}, {'dips': 0, 'strain': 1, 'distance': 0}]]
+                        if my_strain[beta-1] > 0.0001:
+                            new_coeffs.append({'number': str(tot_nterms), 'value': str(0.5*ela_cnst[alpha,beta]*my_strain[beta-1]), 'text': str(my_vogt_dic[alpha])})
+                            new_term = [[{'weight': ' 1.000000'},{'power': ' 1', 'voigt': str(alpha)}, {'dips': 0, 'strain': 1, 'distance': 0}]]
                             # SAT_term = self.get_SATs(new_term, self.xmls_objs[id_in])
                             new_terms.append(new_term)
                             tot_nterms += 1

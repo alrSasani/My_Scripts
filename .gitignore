@@ -1,3 +1,4 @@
 src_xmls/*
 Models/*
 TEST_Anh.py
+__pycache*
