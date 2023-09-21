@@ -904,7 +904,7 @@ class Har_interface:
 # interface Anharmonic potential generation:
 
 class Anh_intrface(Har_interface):
-    def __init__(self, har_xml1, anh_xml1, SC_mat1, har_xml2, anh_xml2, SC_mat2, symmetric=False, miss_fit_trms=False,voigt_missfit=None, miss_fit_id = ['0','1']):
+    def __init__(self, har_xml1, anh_xml1, SC_mat1, har_xml2, anh_xml2, SC_mat2, symmetric=False, miss_fit_trms=False,voigt_missfit=None, miss_fit_id = ['1']):
         Har_interface.__init__(self, har_xml1, SC_mat1,
                                har_xml2, SC_mat2, symmetric=symmetric)
         self.coeff = {}
@@ -1403,7 +1403,7 @@ class Anh_intrface(Har_interface):
             # for j in range(len(trms[i])):
             nstrain = int(trms[i][nterm][-1]['strain'])
             ndis = int(trms[i][nterm][-1]['dips'])
-            if nstrain != 0  and ndis != 0:
+            if nstrain != 0 : # and ndis == 0:
                 str_phonon_coeffs.append(i)
         return(str_phonon_coeffs)
 
@@ -1509,6 +1509,7 @@ class Anh_intrface(Har_interface):
         new_temrs = []
         my_str_phon_term = []
         for i_term,my_term in enumerate(trms): 
+            no_disp = False
             nstrain = int(my_term[-1]['strain'])
             ndisp = int(my_term[-1]['dips'])
             if ndisp == 0:
@@ -1522,10 +1523,12 @@ class Anh_intrface(Har_interface):
                 my_terms = self.get_shifted_terms(
                     my_term, my_strain)
                 ndisp = int(my_term[-1]['dips'])
+                # print(my_terms)
                 if ndisp>0 :
                     disp_text = self.get_disp_text(my_term,my_tags)
                 else:
                     disp_text = ''
+                    no_disp = True
                     ndisp = 1                
                 term_cnre = 0
                 for tmp_key in my_terms[0].keys():
@@ -1559,10 +1562,15 @@ class Anh_intrface(Har_interface):
                             num_str_temrs += 1
                     for disp in range(ndisp):
                             my_dis_term[disp]['weight'] = float(my_dis_term[disp]['weight']) * my_terms[0][tmp_key]
-                    my_str_phon_term[term_cnre].append(
-                        [*my_dis_term, *str_terms, {'dips': ndisp, 'strain': num_str_temrs, 'distance': 0.0}])
+                    if no_disp==False or num_str_temrs > 0:
+                        if no_disp:
+                            temp_ndisp = 0
+                        else:
+                            temp_ndisp = ndisp
+                        my_str_phon_term[term_cnre].append(
+                            [*my_dis_term, *str_terms, {'dips': temp_ndisp, 'strain': num_str_temrs, 'distance': 0.0}])
                     term_cnre += 1
-                if i_term == 0:
+                if i_term == 0 : #and (no_disp==False or num_str_temrs) > 0:
                     temp_trms = re_order_terms(my_terms[0])
                     key_cntr = 0
                     for my_key in temp_trms.keys():
@@ -1572,9 +1580,10 @@ class Anh_intrface(Har_interface):
                         my_key = my_key.replace('y', '(eta_2)')
                         my_key = my_key.replace('z', '(eta_3)')
                         my_text = disp_text+my_key
-                        new_coeff = {'number': str(tot_nterms), 'value': str(
-                            my_value), 'text': my_text}
-                        new_coeffs.append(new_coeff)
+                        if my_text != '':
+                            new_coeff = {'number': str(tot_nterms), 'value': str(
+                                       my_value), 'text': my_text}
+                            new_coeffs.append(new_coeff)
                         key_cntr += 1
         for temp_cntr in range(len(my_str_phon_term)):
             # print(my_str_phon_term[temp_cntr])
@@ -1586,13 +1595,19 @@ class Anh_intrface(Har_interface):
         str_phonon_voigt = self.get_str_phonon_voigt(terms, voigts)
         new_coeffs = []
         new_temrs = []
+        # print(str_phonon_voigt)
         for icoeff in str_phonon_voigt:
-            # print(10*'****----')
-            # print(terms[icoeff][0])
+            # print(10*'****---- ORG ')
+            # # print(terms[icoeff][0])
+            # print(coeff[icoeff])
+            # print(terms[icoeff])
             temp_coeffs,temp_terms = self.get_missfit_term(coeff[icoeff], terms[icoeff], my_tags, my_strain, voigts=[1, 2, 3])
             for cntr in range(len(temp_coeffs)):
                 new_coeffs.append(temp_coeffs[cntr])
                 new_temrs.append(temp_terms[cntr])
+                # print(10*'---------')
+                # print(temp_coeffs[cntr])
+                # print(temp_terms[cntr])
         
         return(new_coeffs,new_temrs)
 
