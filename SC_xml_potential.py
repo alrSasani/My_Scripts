@@ -869,6 +869,7 @@ class anh_scl():
         self.SC_mat = SC_mat
         mySC = MySC
         CPOS = mySC.get_positions()
+        ncell = np.linalg.det(self.SC_mat)        
         # XPOS=mySC.get_scaled_positions()
         ABC = mySC.cell.cellpar()[0:3]
         cPOS = my_atoms.get_positions()
@@ -959,6 +960,10 @@ class anh_scl():
                                     my_term.append(trms[cc][tc][-1])
                                     if my_term not in (my_terms[cc]):
                                         my_terms[cc].append(my_term)
+
+            if len(trms[cc])>=1:
+                if (int(trms[cc][0][-1]['dips']) == 0) and (int(trms[cc][0][-1]['strain'])!=0):
+                    coeff[cc]['value'] = ncell*float(coeff[cc]['value'])
 
         self.SC_terms = my_terms
         self.SC_coeff = coeff

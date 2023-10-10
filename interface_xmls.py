@@ -1000,6 +1000,10 @@ class Anh_intrface(Har_interface):
             print(f'number of Missfit Coeffiecinets for material {id_in} is {len(new_coeffs)}')
         ####################################
 
+        tot_scmat = self.SCMATS[id_in].copy()
+        tot_scmat[2,2] += self.SCMATS[id_pars[id_in]][2, 2]
+        ncell = np.linalg.det(tot_scmat)
+
         wrapPos = ase.geometry.wrap_positions
         my_terms = []
         zdirec1 = range((self.SCMATS[id_in][2, 2]) +
@@ -1081,7 +1085,10 @@ class Anh_intrface(Har_interface):
                                     my_SAT_terms[tc][0]['weight'])*temp_weight
                                 if my_term not in (my_terms[cc]):
                                     my_terms[cc].append(my_term)
-
+            if len(my_SAT_terms)>=1:
+                if (int(my_SAT_terms[0][-1]['dips']) == 0) and (int(my_SAT_terms[0][-1]['strain'])!=0):
+                    tmp_coeffs[cc]['value'] = ncell*float(tmp_coeffs[cc]['value'])
+                    
         self.STRC_terms[id_in] = my_terms
         self.STRC_coeffs[id_in] = tmp_coeffs
 
