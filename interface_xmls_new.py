@@ -942,7 +942,6 @@ class Anh_intrface(Har_interface):
         if self.miss_fit_trms:
             if id_in in self.miss_fit_id:
                 my_strain = self.get_strain(id_in)
-            my_strain = [0.1,0.1,0.1]
 
             print(f'The strain for material id {id_in} = ',my_strain)
             temp_voits = []
@@ -1655,7 +1654,7 @@ class Anh_intrface(Har_interface):
         new_coeffs = []
         new_terms = []
         my_vogt_dic = {1: 'eta_1', 2: 'eta_2', 3: 'eta_3', 4: 'eta_4', 5: 'eta_5', 6: 'eta_6'}
-        ela_cnst = np.linalg.det(self.SCMATS[id_in])*(self.xmls_objs[id_in].ela_cons)
+        ela_cnst = (self.xmls_objs[id_in].ela_cons)   #np.linalg.det(self.SCMATS[id_in])*
         # print(ela_cnst[0:3,0:3])
         tot_nterms = 1
         #{'power': ' 2', 'voigt': ' 1'}, {'dips': 0, 'strain': 1, 'distance': 0}]

@@ -13,190 +13,9 @@ from ase.io import write, read
 import spglib as spg
 import numpy.linalg as alg
 from itertools import permutations
+import copy
 
 ###############################################################################
-
-
-def Xu_write_vasp(filename, atoms, label='', direct=False, sort=True, symbol_count=None, long_format=True, vasp5=True):
-    """
-    Hexu: alter the sort method from 'quicksort' to 'mergesort' so that the order of same symbol is kept; sort default -> True, vasp default ->True.
-
-    Method to write VASP position (POSCAR/CONTCAR) files.
-
-    Writes label, scalefactor, unitcell, # of various kinds of atoms,
-    positions in cartesian or scaled coordinates (Direct), and constraints
-    to file. Cartesian coordiantes is default and default label is the
-    atomic species, e.g. 'C N H Cu'.
-    """
-
-    import numpy as np
-    from ase.constraints import FixAtoms, FixScaled
-
-    if isinstance(filename, str):
-        f = open(filename, 'w')
-    else:  # Assume it's a 'file-like object'
-        f = filename
-
-    if isinstance(atoms, (list, tuple)):
-        if len(atoms) > 1:
-            raise RuntimeError("Don't know how to save more than " +
-                               "one image to VASP input")
-        else:
-            atoms = atoms[0]
-
-    # Write atom positions in scaled or cartesian coordinates
-    if direct:
-        coord = atoms.get_scaled_positions()
-    else:
-        coord = atoms.get_positions()
-
-    if atoms.constraints:
-        sflags = np.zeros((len(atoms), 3), dtype=bool)
-        for constr in atoms.constraints:
-            if isinstance(constr, FixScaled):
-                sflags[constr.a] = constr.mask
-            elif isinstance(constr, FixAtoms):
-                sflags[constr.index] = [True, True, True]
-
-    if sort:
-        ind = np.argsort(atoms.get_chemical_symbols(), kind='mergesort')
-        symbols = np.array(atoms.get_chemical_symbols())[ind]
-        coord = coord[ind]
-        if atoms.constraints:
-            sflags = sflags[ind]
-    else:
-        symbols = atoms.get_chemical_symbols()
-
-    # Create a list sc of (symbol, count) pairs
-    if symbol_count:
-        sc = symbol_count
-    else:
-        sc = []
-        psym = symbols[0]
-        count = 0
-        for sym in symbols:
-            if sym != psym:
-                sc.append((psym, count))
-                psym = sym
-                count = 1
-            else:
-                count += 1
-        sc.append((psym, count))
-
-    # Create the label
-    if label == '':
-        for sym, c in sc:
-            label += '%2s ' % sym
-    f.write(label + '\n')
-
-    # Write unitcell in real coordinates and adapt to VASP convention
-    # for unit cell
-    # ase Atoms doesn't store the lattice constant separately, so always
-    # write 1.0.
-    f.write('%19.16f\n' % 1.0)
-    if long_format:
-        latt_form = ' %21.16f'
-    else:
-        latt_form = ' %11.6f'
-    for vec in atoms.get_cell():
-        f.write(' ')
-        for el in vec:
-            f.write(latt_form % el)
-        f.write('\n')
-
-    # If we're writing a VASP 5.x format POSCAR file, write out the
-    # atomic symbols
-    if vasp5:
-        for sym, c in sc:
-            f.write(' %3s' % sym)
-        f.write('\n')
-
-    # Numbers of each atom
-    for sym, count in sc:
-        f.write(' %3i' % count)
-    f.write('\n')
-
-    if atoms.constraints:
-        f.write('Selective dynamics\n')
-
-    if direct:
-        f.write('Direct\n')
-    else:
-        f.write('Cartesian\n')
-
-    if long_format:
-        cform = ' %19.16f'
-    else:
-        cform = ' %9.6f'
-    for iatom, atom in enumerate(coord):
-        for dcoord in atom:
-            f.write(cform % dcoord)
-        if atoms.constraints:
-            for flag in sflags[iatom]:
-                if flag:
-                    s = 'F'
-                else:
-                    s = 'T'
-                f.write('%4s' % s)
-        f.write('\n')
-
-    if type(filename) == str:
-        f.close()
-
-def to_text(arr):
-    mytxt = ''
-    a = arr.shape
-    for i in range(a[0]):
-        for j in range(a[1]):
-            if i == 0 and j == 0:
-                mytxt = ' {:.14E}'.format(arr[i][j])
-            else:
-                mytxt = mytxt+'  {:.14E}'.format(arr[i][j])
-        mytxt = mytxt+'\n'
-    return(mytxt)
-
-
-def one_text(arr):
-    mytxt = ''
-    a = len(arr)
-    for i in range(a):
-        if i == 0:
-            mytxt = ' {:.14E}'.format(arr[i])
-        else:
-            mytxt = mytxt+'  {:.14E}'.format(arr[i])
-    mytxt = mytxt+'\n'
-    return(mytxt)
-
-
-def get_atom_num(atomic_mass, tol=0.1):
-    if abs(atomic_mass-208) < 1:
-        tol = 0.001
-    for i in range(len(atomic_masses)):
-        if abs(atomic_masses[i]-atomic_mass) < tol:
-            mynum = i
-    return(mynum)
-
-
-def find_index(Mcor, Vec, tol=0.001):
-    index = -1
-    for m in range(len(Mcor)):
-        flg = []
-        for v in range(len(Mcor[m])):
-            diff = Mcor[m, v]-Vec[v]
-            if abs(diff) < tol:
-                flg.append(True)
-            else:
-                flg.append(False)
-        if all(flg):
-            index = m
-    return(index)
-
-
-def get_key(my_dict, val):
-    for key, value in my_dict.items():
-        if val == value:
-            return key
-    return "key doesn't exist"
 
 # Harmonic xml reader:
 
@@ -468,11 +287,12 @@ class xml_sys():
 ################################################################################
 
 class my_sc_maker():
-    def __init__(self, xml_file, SC_mat):
+    def __init__(self, xml_file, SC_mat,strain=np.zeros(3)):
         self.xml = xml_sys(xml_file)
         self.xml.get_ase_atoms()
         self.my_atoms = self.xml.ase_atoms
         self.SC_mat = SC_mat
+        self.set_SC(self.my_atoms,strain=strain)
         self.mySC = make_supercell(self.my_atoms, self.SC_mat)
         self.SC_natom = self.mySC.get_global_number_of_atoms()
         self.SC_num_Uclls = np.linalg.det(SC_mat)
@@ -498,8 +318,10 @@ class my_sc_maker():
     def set_loc_UCFC(self, temp_loc_FCdic):
         self.loc_FC_dic = temp_loc_FCdic
 
-    def set_SC(self, tmp_atoms):
-        self.mySC = make_supercell(tmp_atoms, self.SC_mat)
+    def set_SC(self, tmp_atoms,strain=np.zeros(3)):
+        mySC = make_supercell(tmp_atoms, self.SC_mat)
+        cell = mySC.get_cell()+np.dor(strain,mySC.get_cell())
+        self.mySC = Atoms(numbers= mySC.get_atomic_numbers,scaled_positions=mySC.get_scaled_positions,cell = cell)
 
     def get_SC_FCDIC(self):
         CPOS = self.mySC.get_positions()
@@ -857,17 +679,65 @@ def xml_anha(fname, atoms):
 
 class anh_scl():
 
-    def __init__(self, har_xml, anh_xml):
+    def __init__(self, har_xml, anh_xml,strain_in=np.zeros(3)):
         self.xml = har_xml
         self.ahxml = anh_xml
-
+        strain_vogt = self.get_strain(strain=strain_in)
+        if any(strain_vogt)>0.0001:
+            self.has_strain = True
+            self.voigt_strain = strain_vogt
+        else:
+            self.has_strain = False
+            self.voigt_strain = [0,0,0,0,0,0]
+            
     def SC_trms(self, MySC, SC_mat):
         myxml_clss = xml_sys(self.xml)
         myxml_clss.get_ase_atoms()
+        
         my_atoms = myxml_clss.ase_atoms
         coeff, trms = xml_anha(self.ahxml, my_atoms)
         self.SC_mat = SC_mat
         mySC = MySC
+###########################        
+        total_coefs = len(coeff)
+        tol_04 = 0.0001
+        if self.miss_fit_trms:
+
+            print(f'The strain for material id  = ',self.voigt_strain)
+            temp_voits = []
+            strain_flag = []
+            stain_flag_inp = []
+            for ii,i in enumerate(self.voigt_strain):
+                if abs(i) >= tol_04:
+                    strain_flag.append(True)
+                    temp_voits.append(ii+1)
+                    if self.voigt_missfit is not None and ii+1 in self.voigt_missfit:
+                        stain_flag_inp.append(True)
+                else:
+                    strain_flag.append(False)
+                    if self.voigt_missfit is not None and ii+1 not in self.voigt_missfit:
+                        stain_flag_inp.append(False)                               
+            if self.voigt_missfit is not None:
+                temp_voits = self.voigt_missfit
+                strain_flag = stain_flag_inp
+                
+            # print(f' The missfit strains material {id_in} are in directions : ',10*'***',temp_voits, 'in direction ', stain_flag_inp)
+            if any(strain_flag):           
+                my_tags = myxml_clss.tags
+                new_coeffs, new_trms = self.get_missfit_terms(
+                    coeff, trms, my_tags, self.voigt_strain, voigts=temp_voits)
+                for ntrm_cntr in range(len(new_coeffs)):
+                    trms.append(new_trms[ntrm_cntr])
+                    coeff[total_coefs+ntrm_cntr] = new_coeffs[ntrm_cntr]
+                print(f'number of Missfit Coeffiecinets for material is {len(new_coeffs)}')
+
+                # total_coefs = len(coeff)
+                # new_coeffs, new_trms = self.get_elas_missfit(self.voigt_strain,voigts=temp_voits)
+                # for ntrm_cntr in range(len(new_coeffs)):
+                #     trms.append(new_trms[ntrm_cntr])
+                #     coeff[total_coefs+ntrm_cntr] = new_coeffs[ntrm_cntr]
+
+####################################                        
         CPOS = mySC.get_positions()
         ncell = np.linalg.det(self.SC_mat)        
         # XPOS=mySC.get_scaled_positions()
@@ -1001,6 +871,272 @@ class anh_scl():
             output.write('  </coefficient>\n')
         output.write('</Heff_definition>\n')
 
+    def find_str_phonon_coeffs(self, trms):
+        '''this function returns all the terms with strain phonon couplings'''
+        str_phonon_coeffs = []
+        nterm = 0
+        for i in range(len(trms)):
+            # for j in range(len(trms[i])):
+            nstrain = int(trms[i][nterm][-1]['strain'])
+            ndis = int(trms[i][nterm][-1]['dips'])
+            if nstrain != 0 and ndis == 0:
+                str_phonon_coeffs.append(i)
+        return(str_phonon_coeffs)
+
+    def get_str_phonon_voigt(self, trms, voigts=[1, 2, 3]):
+        '''This function returns the number of coefficients that have particulat strain phonon coupling'''
+        str_phonon_coeffs = self.find_str_phonon_coeffs(trms)
+        str_phonon_voigt = []
+
+        for i in str_phonon_coeffs:
+            voigt_found = False
+            for nterm in range(len(trms[i])):
+                if not voigt_found:
+                    nstrain = int(trms[i][nterm][-1]['strain'])
+                    ndis = int(trms[i][nterm][-1]['dips'])
+                    if ndis == 0:
+                        ndis = 1
+                    for l in range(nstrain):
+                        # print(trms[i][nterm][ndis+l])
+                        my_voigt = int(trms[i][nterm][ndis+l]['voigt'])
+                        if my_voigt in voigts:
+                            str_phonon_voigt.append(i)
+                            voigt_found = True
+                            break
+        # print(10*'*******')
+        return(str_phonon_voigt)
+
+    def get_new_str_terms(self, term,get_org=False):
+        '''This function changes the term to a dictionary so that we can expand and multiply like polynomials
+        it returns a list like : [[({'z': 1, 'c': 1}, 2)]] where we have in the dictionary different voigt strains 
+        (x,y,z,xy ..) and their values as a,b,c,d ... and the power of the strain as the last element of the list '''
+        vogt_terms = []
+        my_vogt_dic = {1: 'x', 2: 'y', 3: 'z', 4: 'yz', 5: 'xz', 6: 'xy'}
+        my_vogt_str = {1: 'a', 2: 'b', 3: 'c', 4: 'd', 5: 'e', 6: 'f', }
+
+        nstrain = int(term[-1]['strain'])
+        ndis = int(term[-1]['dips'])
+        if ndis == 0:
+            ndis = 1
+        my_lst = []
+        for l in range(nstrain):
+            my_voigt = int(term[ndis+l]['voigt'])
+            my_power = int(term[ndis+l]['power'])
+            if get_org:
+                my_str = ({my_vogt_dic[my_voigt]: 1}, my_power)
+            else:
+                my_str = (
+                    {my_vogt_dic[my_voigt]: 1, my_vogt_str[my_voigt]: 1}, my_power)
+            my_lst.append(my_str)
+        vogt_terms.append(my_lst)
+        return(vogt_terms)
+
+    def get_mult_coeffs(self, my_str_trms):
+        mult_terms = []
+        for i in range(len(my_str_trms)):
+            tem_dic = {}
+            for j in range(len(my_str_trms[i])):
+                if j == 0:
+                    tem_dic = get_pwr_N(
+                        my_str_trms[i][j][0], my_str_trms[i][j][1])
+                else:
+                    tem_dic = terms_mult(tem_dic, get_pwr_N(
+                        my_str_trms[i][j][0], my_str_trms[i][j][1]))
+            mult_terms.append(tem_dic)
+        return(mult_terms)
+
+    def get_shifted_terms(self, term, my_strain=[0, 0, 0]):
+        not_shift = ['x', 'y', 'z']
+        a, b, c = my_strain[0], my_strain[1], my_strain[2]
+        my_mul_terms = self.get_mult_coeffs(
+            self.get_new_str_terms(term))
+        org_terms = self.get_mult_coeffs(
+            self.get_new_str_terms(term,get_org=True))
+        # print(10*'---')
+        # print(org_terms)
+        # print(my_mul_terms)
+        for i in range(len(org_terms)):
+            for my_key in org_terms[i].keys():
+                del my_mul_terms[i][my_key]
+        shift_mult_terms = []
+        for i in range(len(my_mul_terms)):
+            new_dict = {}
+            for my_key in my_mul_terms[i].keys():
+                my_trms = my_key.split()
+                my_val = my_mul_terms[i][my_key]
+                new_key = ' '
+                for tt in my_trms:
+                    if tt in not_shift:
+                        new_key = new_key + ' ' + tt
+                    else:
+                        if tt == 'a':
+                            my_val *= a
+                        elif tt == 'b':
+                            my_val *= b
+                        elif tt == 'c':
+                            my_val *= c
+                new_dict[new_key] = my_val
+            shift_mult_terms.append(new_dict)
+        return(shift_mult_terms)
+
+    def get_missfit_term(self, coeff, trms, my_tags, my_strain, voigts=[1, 2, 3]):
+        tot_nterms = 0 
+        new_coeffs = []
+        new_temrs = []
+        my_str_phon_term = []
+        for i_term,my_term in enumerate(trms): 
+            no_disp = False
+            nstrain = int(my_term[-1]['strain'])
+            ndisp = int(my_term[-1]['dips'])
+            if ndisp == 0:
+                ndisp = 1
+            voits_found = False
+            for l in range(nstrain):
+                my_voigt = int(my_term[ndisp+l]['voigt'])
+                if int(my_voigt) in voigts:
+                    voits_found = True
+            if voits_found:
+                my_terms = self.get_shifted_terms(
+                    my_term, my_strain)
+                ndisp = int(my_term[-1]['dips'])
+                # print(my_terms)
+                if ndisp>0 :
+                    disp_text = self.get_disp_text(my_term,my_tags)
+                else:
+                    disp_text = ''
+                    no_disp = True
+                    ndisp = 1                
+                term_cnre = 0
+                for tmp_key in my_terms[0].keys():
+                    my_dis_term = copy.deepcopy(my_term[0:ndisp])
+                    if len(my_str_phon_term) < len(my_terms[0].keys()):
+                        my_str_phon_term.append([])
+                    num_str_temrs = 0
+                    str_terms = []
+                    # find x
+                    pwer_x = tmp_key.count('x')
+                    if pwer_x != 0:
+                        str_terms.append(
+                            {'power': f' {pwer_x}', 'voigt': ' 1'})
+                        num_str_temrs += 1
+                    # find y
+                    pwer_y = tmp_key.count('y')
+                    if pwer_y != 0:
+                        str_terms.append(
+                            {'power': f' {pwer_y}', 'voigt': ' 2'})
+                        num_str_temrs += 1
+                    # find z
+                    pwer_z = tmp_key.count('z')
+                    if pwer_z != 0:
+                        str_terms.append(
+                            {'power': f' {pwer_z}', 'voigt': ' 3'})
+                        num_str_temrs += 1
+
+                    for str_cntr in range(int(my_term[-1]['strain'])):
+                        if int(my_term[ndisp+str_cntr]['voigt']) not in (voigts):
+                            str_terms.append(my_term[ndisp+str_cntr])
+                            num_str_temrs += 1
+                    for disp in range(ndisp):
+                            my_dis_term[disp]['weight'] = float(my_dis_term[disp]['weight']) * my_terms[0][tmp_key]
+                    if no_disp==False or num_str_temrs > 0:
+                        if no_disp:
+                            temp_ndisp = 0
+                        else:
+                            temp_ndisp = ndisp
+                        my_str_phon_term[term_cnre].append(
+                            [*my_dis_term, *str_terms, {'dips': temp_ndisp, 'strain': num_str_temrs, 'distance': 0.0}])
+                    term_cnre += 1
+                if i_term == 0 : #and (no_disp==False or num_str_temrs) > 0:
+                    temp_trms = re_order_terms(my_terms[0])
+                    key_cntr = 0
+                    for my_key in temp_trms.keys():
+                        tot_nterms += 1
+                        my_value = float(coeff['value']) 
+                        my_key = my_key.replace('x', '(eta_1)')
+                        my_key = my_key.replace('y', '(eta_2)')
+                        my_key = my_key.replace('z', '(eta_3)')
+                        my_text = disp_text+my_key
+                        if my_text != '':
+                            new_coeff = {'number': str(tot_nterms), 'value': str(
+                                       my_value), 'text': my_text}
+                            new_coeffs.append(new_coeff)
+                        key_cntr += 1
+
+        for temp_cntr in range(len(my_str_phon_term)):
+            # print(my_str_phon_term[temp_cntr])
+            new_temrs.append(my_str_phon_term[temp_cntr])
+        
+        return(new_coeffs, new_temrs)
+
+    def get_missfit_terms(self, coeff, terms, my_tags, my_strain, voigts=[1, 2, 3]):
+        str_phonon_voigt = self.get_str_phonon_voigt(terms, voigts)
+        new_coeffs = []
+        new_terms = []
+        # print(str_phonon_voigt)
+        for icoeff in str_phonon_voigt:
+            # print(10*'****---- ORG ')
+            # # print(terms[icoeff][0])
+            # print(coeff[icoeff])
+            # print(terms[icoeff])
+            temp_coeffs,temp_terms = self.get_missfit_term(coeff[icoeff], terms[icoeff], my_tags, my_strain, voigts=[1, 2, 3])
+            for cntr in range(len(temp_coeffs)):
+                new_coeffs.append(temp_coeffs[cntr])
+                new_terms.append(temp_terms[cntr])
+                # print(10*'---------')
+                # print(temp_coeffs[cntr])
+                # print(temp_terms[cntr])
+        
+        return(new_coeffs,new_terms)
+
+    def get_disp_text(self,my_term,my_tags):
+        disp_text = ''
+        ndisp = int(my_term[-1]['dips'])
+        for disp in range(ndisp):
+            atm_a = int(my_term[disp]['atom_a'])
+            atm_b = int(my_term[disp]['atom_b'])
+            cell_b = [int(x) for x in my_term
+                    [disp]['cell_b'].split()]
+            direction = my_term[disp]['direction']
+            power = my_term[disp]['power']
+            if not any(cell_b):
+                disp_text += (
+                    f'({my_tags[atm_a]}_{direction}-{my_tags[atm_b]}_{direction})^{power}')
+            else:
+                disp_text += (
+                    f'({my_tags[atm_a]}_{direction}-{my_tags[atm_b]}_{direction}[{cell_b[0]} {cell_b[1]} {cell_b[2]}])^{power}')   
+        return(disp_text)     
+
+    def get_strain(self, strain=np.zeros(0)):
+        voigt_str = [strain[0,0],strain[1,1],strain[2,2],(strain[1,2]+strain[2,1])/2,(strain[0,2]+strain[2,0])/2,(strain[0,1]+strain[1,0])/2]
+        return(np.array(voigt_str))
+
+    def get_elas_missfit(self,id_in,my_strain,voigts=[]):
+        new_coeffs = []
+        new_terms = []
+        my_vogt_dic = {1: 'eta_1', 2: 'eta_2', 3: 'eta_3', 4: 'eta_4', 5: 'eta_5', 6: 'eta_6'}
+        ela_cnst = (self.xmls_objs[id_in].ela_cons)   #np.linalg.det(self.SCMATS[id_in])*
+        tot_nterms = 1
+        for alpha in voigts:
+            for beta in voigts:
+                if my_strain[alpha-1] !=0 or my_strain[beta-1] != 0:
+                    if alpha == beta:
+                        new_coeffs.append({'number': str(tot_nterms), 'value': str(ela_cnst[alpha,beta]*my_strain[alpha-1]), 'text': my_vogt_dic[alpha]})
+                        new_term = [[{'weight': ' 1.000000'},{'power': ' 1', 'voigt': str(alpha)}, {'dips': 0, 'strain': 1, 'distance': 0}]]
+                        new_terms.append(new_term)
+                        tot_nterms += 1
+                    else:
+                        if my_strain[alpha-1] > 0.0001:
+                            new_coeffs.append({'number': str(tot_nterms), 'value': str(0.5*ela_cnst[alpha,beta]*my_strain[alpha-1]), 'text': str(my_vogt_dic[beta])})
+                            new_term = [[{'weight': ' 1.000000'},{'power': ' 1', 'voigt': str(beta)}, {'dips': 0, 'strain': 1, 'distance': 0}]]
+                            new_terms.append(new_term)
+                            tot_nterms += 1
+
+                        if my_strain[beta-1] > 0.0001:
+                            new_coeffs.append({'number': str(tot_nterms), 'value': str(0.5*ela_cnst[alpha,beta]*my_strain[beta-1]), 'text': str(my_vogt_dic[alpha])})
+                            new_term = [[{'weight': ' 1.000000'},{'power': ' 1', 'voigt': str(alpha)}, {'dips': 0, 'strain': 1, 'distance': 0}]]
+                            new_terms.append(new_term)
+                            tot_nterms += 1
+        return(new_coeffs,new_terms)
 
 #################################################################################
 
@@ -1221,6 +1357,238 @@ class new_anh_scl():
         output.write('</Heff_definition>\n')
 
 #####################################################
+
+
+def str_mult(a,b):
+    '''this function returns multiplication of two strings as like :
+        a   >  x      b   >>    a result    >   a x'''
+    my_list = [*a.split(),*b.split()]
+    my_list.sort() 
+    return(' '.join(my_list))
+
+def terms_mult(T_1,T_2):
+    '''This function returns multiplication of two terms T_1 and T_2 
+    T1  >   {'z': 1, 'c': 1}  T2  >  {'z': 1, 'c': 1}  ===>   T1T2  > {'z z': 1, 'c z': 2, 'c c': 1}'''
+    T1T2 = {}
+    for i in T_1.keys():
+        for j in T_2.keys():
+            my_key = str_mult(i,j)
+            if my_key in T1T2.keys():
+                T1T2[my_key] = T1T2[my_key]+ T_1[i]*T_2[j]
+            else:
+                T1T2[my_key] = T_1[i]*T_2[j]
+    return(T1T2)
+
+def get_pwr_N(T1,n):
+    '''This function return term T1 to the power of n'''
+    if n-1!=0:
+        return(terms_mult(get_pwr_N(T1,n-1),T1))
+    else:
+        return(T1)
+
+def re_order_terms(T1):
+    '''This function changes a dictionary written as {' x x x : 1} to {x^3 : 1}
+    T1  >>   {'  x': 0.2, ' ': 0.010000000000000002} Fin_dict >>   {'x^1': 0.2, '': 0.010000000000000002}'''
+    fin_dict = {}
+    for key in T1.keys():
+        my_pwr_list = {}
+        tmp_key = 0
+        char_0 = ' '
+        pwr_1 = 0
+        for char in key.split():
+            if char_0 == ' ':
+                char_0 = char
+                my_pwr_list[char_0] = 1
+            elif char_0 == char:
+                my_pwr_list[char_0] += 1
+            else:
+                char_0 = char
+                my_pwr_list[char_0] = 1
+        New_key = [tmp_key+'^'+str(my_pwr_list[tmp_key]) for tmp_key in my_pwr_list.keys()]
+        New_key = ' '.join(New_key)
+        fin_dict[New_key] = T1[key]
+    return(fin_dict)
+
+def Xu_write_vasp(filename, atoms, label='', direct=False, sort=True, symbol_count=None, long_format=True, vasp5=True):
+    """
+    Hexu: alter the sort method from 'quicksort' to 'mergesort' so that the order of same symbol is kept; sort default -> True, vasp default ->True.
+
+    Method to write VASP position (POSCAR/CONTCAR) files.
+
+    Writes label, scalefactor, unitcell, # of various kinds of atoms,
+    positions in cartesian or scaled coordinates (Direct), and constraints
+    to file. Cartesian coordiantes is default and default label is the
+    atomic species, e.g. 'C N H Cu'.
+    """
+
+    import numpy as np
+    from ase.constraints import FixAtoms, FixScaled
+
+    if isinstance(filename, str):
+        f = open(filename, 'w')
+    else:  # Assume it's a 'file-like object'
+        f = filename
+
+    if isinstance(atoms, (list, tuple)):
+        if len(atoms) > 1:
+            raise RuntimeError("Don't know how to save more than " +
+                               "one image to VASP input")
+        else:
+            atoms = atoms[0]
+
+    # Write atom positions in scaled or cartesian coordinates
+    if direct:
+        coord = atoms.get_scaled_positions()
+    else:
+        coord = atoms.get_positions()
+
+    if atoms.constraints:
+        sflags = np.zeros((len(atoms), 3), dtype=bool)
+        for constr in atoms.constraints:
+            if isinstance(constr, FixScaled):
+                sflags[constr.a] = constr.mask
+            elif isinstance(constr, FixAtoms):
+                sflags[constr.index] = [True, True, True]
+
+    if sort:
+        ind = np.argsort(atoms.get_chemical_symbols(), kind='mergesort')
+        symbols = np.array(atoms.get_chemical_symbols())[ind]
+        coord = coord[ind]
+        if atoms.constraints:
+            sflags = sflags[ind]
+    else:
+        symbols = atoms.get_chemical_symbols()
+
+    # Create a list sc of (symbol, count) pairs
+    if symbol_count:
+        sc = symbol_count
+    else:
+        sc = []
+        psym = symbols[0]
+        count = 0
+        for sym in symbols:
+            if sym != psym:
+                sc.append((psym, count))
+                psym = sym
+                count = 1
+            else:
+                count += 1
+        sc.append((psym, count))
+
+    # Create the label
+    if label == '':
+        for sym, c in sc:
+            label += '%2s ' % sym
+    f.write(label + '\n')
+
+    # Write unitcell in real coordinates and adapt to VASP convention
+    # for unit cell
+    # ase Atoms doesn't store the lattice constant separately, so always
+    # write 1.0.
+    f.write('%19.16f\n' % 1.0)
+    if long_format:
+        latt_form = ' %21.16f'
+    else:
+        latt_form = ' %11.6f'
+    for vec in atoms.get_cell():
+        f.write(' ')
+        for el in vec:
+            f.write(latt_form % el)
+        f.write('\n')
+
+    # If we're writing a VASP 5.x format POSCAR file, write out the
+    # atomic symbols
+    if vasp5:
+        for sym, c in sc:
+            f.write(' %3s' % sym)
+        f.write('\n')
+
+    # Numbers of each atom
+    for sym, count in sc:
+        f.write(' %3i' % count)
+    f.write('\n')
+
+    if atoms.constraints:
+        f.write('Selective dynamics\n')
+
+    if direct:
+        f.write('Direct\n')
+    else:
+        f.write('Cartesian\n')
+
+    if long_format:
+        cform = ' %19.16f'
+    else:
+        cform = ' %9.6f'
+    for iatom, atom in enumerate(coord):
+        for dcoord in atom:
+            f.write(cform % dcoord)
+        if atoms.constraints:
+            for flag in sflags[iatom]:
+                if flag:
+                    s = 'F'
+                else:
+                    s = 'T'
+                f.write('%4s' % s)
+        f.write('\n')
+
+    if type(filename) == str:
+        f.close()
+
+def to_text(arr):
+    mytxt = ''
+    a = arr.shape
+    for i in range(a[0]):
+        for j in range(a[1]):
+            if i == 0 and j == 0:
+                mytxt = ' {:.14E}'.format(arr[i][j])
+            else:
+                mytxt = mytxt+'  {:.14E}'.format(arr[i][j])
+        mytxt = mytxt+'\n'
+    return(mytxt)
+
+
+def one_text(arr):
+    mytxt = ''
+    a = len(arr)
+    for i in range(a):
+        if i == 0:
+            mytxt = ' {:.14E}'.format(arr[i])
+        else:
+            mytxt = mytxt+'  {:.14E}'.format(arr[i])
+    mytxt = mytxt+'\n'
+    return(mytxt)
+
+
+def get_atom_num(atomic_mass, tol=0.1):
+    if abs(atomic_mass-208) < 1:
+        tol = 0.001
+    for i in range(len(atomic_masses)):
+        if abs(atomic_masses[i]-atomic_mass) < tol:
+            mynum = i
+    return(mynum)
+
+
+def find_index(Mcor, Vec, tol=0.001):
+    index = -1
+    for m in range(len(Mcor)):
+        flg = []
+        for v in range(len(Mcor[m])):
+            diff = Mcor[m, v]-Vec[v]
+            if abs(diff) < tol:
+                flg.append(True)
+            else:
+                flg.append(False)
+        if all(flg):
+            index = m
+    return(index)
+
+
+def get_key(my_dict, val):
+    for key, value in my_dict.items():
+        if val == value:
+            return key
+    return "key doesn't exist"
 
 
 if __name__ == '__main__':
