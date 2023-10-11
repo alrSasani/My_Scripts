@@ -1574,8 +1574,19 @@ class Anh_intrface(Har_interface):
                             temp_ndisp = 0
                         else:
                             temp_ndisp = ndisp
-                        my_str_phon_term[term_cnre].append(
-                            [*my_dis_term, *str_terms, {'dips': temp_ndisp, 'strain': num_str_temrs, 'distance': 0.0}])
+
+                        tmp_term = [*my_dis_term, *str_terms, {'dips': temp_ndisp, 'strain': num_str_temrs, 'distance': 0.0}]
+                        if tmp_term not in my_str_phon_term[term_cnre]:
+                            my_str_phon_term[term_cnre].append(tmp_term)
+                        else:
+                            indx = my_str_phon_term[term_cnre].index(tmp_term)
+                            ndisp_tmp = my_str_phon_term[term_cnre][indx][-1]['dips']
+                            nstr_tmp = my_str_phon_term[term_cnre][indx][-1]['strain']
+                            if ndisp_tmp ==0:
+                                ndisp_tmp = 1
+                            for i in range(ndisp_tmp):
+                                       my_str_phon_term[term_cnre][indx][i]['weight'] += tmp_term[i]['weight']
+
                     term_cnre += 1
                 if i_term == 0 : #and (no_disp==False or num_str_temrs) > 0:
                     temp_trms = re_order_terms(my_terms[0])

@@ -287,13 +287,13 @@ class xml_sys():
 ################################################################################
 
 class my_sc_maker():
-    def __init__(self, xml_file, SC_mat,strain=np.zeros(3)):
+    def __init__(self, xml_file, SC_mat,strain=np.zeros((0,0))):
         self.xml = xml_sys(xml_file)
         self.xml.get_ase_atoms()
         self.my_atoms = self.xml.ase_atoms
         self.SC_mat = SC_mat
         self.set_SC(self.my_atoms,strain=strain)
-        self.mySC = make_supercell(self.my_atoms, self.SC_mat)
+        # self.mySC = make_supercell(self.my_atoms, self.SC_mat)
         self.SC_natom = self.mySC.get_global_number_of_atoms()
         self.SC_num_Uclls = np.linalg.det(SC_mat)
         self.has_SC_FCDIC = False
@@ -320,8 +320,8 @@ class my_sc_maker():
 
     def set_SC(self, tmp_atoms,strain=np.zeros(3)):
         mySC = make_supercell(tmp_atoms, self.SC_mat)
-        cell = mySC.get_cell()+np.dor(strain,mySC.get_cell())
-        self.mySC = Atoms(numbers= mySC.get_atomic_numbers,scaled_positions=mySC.get_scaled_positions,cell = cell)
+        cell = mySC.get_cell()+np.dot(strain,mySC.get_cell())
+        self.mySC = Atoms(numbers= mySC.get_atomic_numbers(),scaled_positions=mySC.get_scaled_positions(),cell = cell)
 
     def get_SC_FCDIC(self):
         CPOS = self.mySC.get_positions()
@@ -679,7 +679,7 @@ def xml_anha(fname, atoms):
 
 class anh_scl():
 
-    def __init__(self, har_xml, anh_xml,strain_in=np.zeros(3)):
+    def __init__(self, har_xml, anh_xml,strain_in=np.zeros((0,0))):
         self.xml = har_xml
         self.ahxml = anh_xml
         strain_vogt = self.get_strain(strain=strain_in)
@@ -722,7 +722,8 @@ class anh_scl():
                 strain_flag = stain_flag_inp
                 
             # print(f' The missfit strains material {id_in} are in directions : ',10*'***',temp_voits, 'in direction ', stain_flag_inp)
-            if any(strain_flag):           
+            if any(strain_flag):  
+                myxml_clss.set_tags()         
                 my_tags = myxml_clss.tags
                 new_coeffs, new_trms = self.get_missfit_terms(
                     coeff, trms, my_tags, self.voigt_strain, voigts=temp_voits)
@@ -731,11 +732,11 @@ class anh_scl():
                     coeff[total_coefs+ntrm_cntr] = new_coeffs[ntrm_cntr]
                 print(f'number of Missfit Coeffiecinets for material is {len(new_coeffs)}')
 
-                # total_coefs = len(coeff)
-                # new_coeffs, new_trms = self.get_elas_missfit(self.voigt_strain,voigts=temp_voits)
-                # for ntrm_cntr in range(len(new_coeffs)):
-                #     trms.append(new_trms[ntrm_cntr])
-                #     coeff[total_coefs+ntrm_cntr] = new_coeffs[ntrm_cntr]
+                total_coefs = len(coeff)
+                new_coeffs, new_trms = self.get_elas_missfit(self.voigt_strain,voigts=temp_voits)
+                for ntrm_cntr in range(len(new_coeffs)):
+                    trms.append(new_trms[ntrm_cntr])
+                    coeff[total_coefs+ntrm_cntr] = new_coeffs[ntrm_cntr]
 
 ####################################                        
         CPOS = mySC.get_positions()
@@ -879,7 +880,7 @@ class anh_scl():
             # for j in range(len(trms[i])):
             nstrain = int(trms[i][nterm][-1]['strain'])
             ndis = int(trms[i][nterm][-1]['dips'])
-            if nstrain != 0 and ndis == 0:
+            if nstrain != 0 and ndis != 0:
                 str_phonon_coeffs.append(i)
         return(str_phonon_coeffs)
 
@@ -1043,8 +1044,19 @@ class anh_scl():
                             temp_ndisp = 0
                         else:
                             temp_ndisp = ndisp
-                        my_str_phon_term[term_cnre].append(
-                            [*my_dis_term, *str_terms, {'dips': temp_ndisp, 'strain': num_str_temrs, 'distance': 0.0}])
+
+                        tmp_term = [*my_dis_term, *str_terms, {'dips': temp_ndisp, 'strain': num_str_temrs, 'distance': 0.0}]
+                        if tmp_term not in my_str_phon_term[term_cnre]:
+                            my_str_phon_term[term_cnre].append(tmp_term)
+                        else:
+                            indx = my_str_phon_term[term_cnre].index(tmp_term)
+                            ndisp_tmp = my_str_phon_term[term_cnre][indx][-1]['dips']
+                            nstr_tmp = my_str_phon_term[term_cnre][indx][-1]['strain']
+                            if ndisp_tmp ==0:
+                                ndisp_tmp = 1
+                            for i in range(ndisp_tmp):
+                                       my_str_phon_term[term_cnre][indx][i]['weight'] += tmp_term[i]['weight']
+
                     term_cnre += 1
                 if i_term == 0 : #and (no_disp==False or num_str_temrs) > 0:
                     temp_trms = re_order_terms(my_terms[0])
@@ -1106,15 +1118,18 @@ class anh_scl():
                     f'({my_tags[atm_a]}_{direction}-{my_tags[atm_b]}_{direction}[{cell_b[0]} {cell_b[1]} {cell_b[2]}])^{power}')   
         return(disp_text)     
 
-    def get_strain(self, strain=np.zeros(0)):
+    def get_strain(self, strain=np.zeros((0,0))):
+        print(strain)
         voigt_str = [strain[0,0],strain[1,1],strain[2,2],(strain[1,2]+strain[2,1])/2,(strain[0,2]+strain[2,0])/2,(strain[0,1]+strain[1,0])/2]
         return(np.array(voigt_str))
 
     def get_elas_missfit(self,id_in,my_strain,voigts=[]):
+        myxml_clss = xml_sys(self.xml)
+        myxml_clss.get_ela_cons()
         new_coeffs = []
         new_terms = []
         my_vogt_dic = {1: 'eta_1', 2: 'eta_2', 3: 'eta_3', 4: 'eta_4', 5: 'eta_5', 6: 'eta_6'}
-        ela_cnst = (self.xmls_objs[id_in].ela_cons)   #np.linalg.det(self.SCMATS[id_in])*
+        ela_cnst = (myxml_clss.ela_cons)   #np.linalg.det(self.SCMATS[])*
         tot_nterms = 1
         for alpha in voigts:
             for beta in voigts:
