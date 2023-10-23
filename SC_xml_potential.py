@@ -1123,34 +1123,27 @@ class anh_scl():
         voigt_str = [strain[0,0],strain[1,1],strain[2,2],(strain[1,2]+strain[2,1])/2,(strain[0,2]+strain[2,0])/2,(strain[0,1]+strain[1,0])/2]
         return(np.array(voigt_str))
 
-    def get_elas_missfit(self,id_in,my_strain,voigts=[]):
+    def get_elas_missfit(self,my_strain,voigts=[]):
+        tol_str = 10**-6
         myxml_clss = xml_sys(self.xml)
         myxml_clss.get_ela_cons()
+        strten = np.zeros(6)
         new_coeffs = []
         new_terms = []
         my_vogt_dic = {1: 'eta_1', 2: 'eta_2', 3: 'eta_3', 4: 'eta_4', 5: 'eta_5', 6: 'eta_6'}
         ela_cnst = (myxml_clss.ela_cons)   #np.linalg.det(self.SCMATS[])*
         tot_nterms = 1
-        for alpha in voigts:
-            for beta in voigts:
-                if my_strain[alpha-1] !=0 or my_strain[beta-1] != 0:
-                    if alpha == beta:
-                        new_coeffs.append({'number': str(tot_nterms), 'value': str(ela_cnst[alpha,beta]*my_strain[alpha-1]), 'text': my_vogt_dic[alpha]})
-                        new_term = [[{'weight': ' 1.000000'},{'power': ' 1', 'voigt': str(alpha)}, {'dips': 0, 'strain': 1, 'distance': 0}]]
-                        new_terms.append(new_term)
-                        tot_nterms += 1
-                    else:
-                        if my_strain[alpha-1] > 0.0001:
-                            new_coeffs.append({'number': str(tot_nterms), 'value': str(0.5*ela_cnst[alpha,beta]*my_strain[alpha-1]), 'text': str(my_vogt_dic[beta])})
-                            new_term = [[{'weight': ' 1.000000'},{'power': ' 1', 'voigt': str(beta)}, {'dips': 0, 'strain': 1, 'distance': 0}]]
-                            new_terms.append(new_term)
-                            tot_nterms += 1
+        for alpha in my_vogt_dic.keys():
+            for beta in my_vogt_dic.keys():
 
-                        if my_strain[beta-1] > 0.0001:
-                            new_coeffs.append({'number': str(tot_nterms), 'value': str(0.5*ela_cnst[alpha,beta]*my_strain[beta-1]), 'text': str(my_vogt_dic[alpha])})
-                            new_term = [[{'weight': ' 1.000000'},{'power': ' 1', 'voigt': str(alpha)}, {'dips': 0, 'strain': 1, 'distance': 0}]]
-                            new_terms.append(new_term)
-                            tot_nterms += 1
+                strten[alpha-1] +=  ela_cnst[alpha-1,beta-1]*my_strain[beta-1] 
+
+            # if strten[alpha-1] > tol_str:
+            new_coeffs.append({'number': str(tot_nterms), 'value': str(strten[alpha-1]), 'text': my_vogt_dic[alpha]})
+            new_term = [[{'weight': ' 1.000000'},{'power': ' 1', 'voigt': str(alpha)}, {'dips': 0, 'strain': 1, 'distance': 0}]]
+            new_terms.append(new_term)
+            tot_nterms += 1
+
         return(new_coeffs,new_terms)
 
 #################################################################################
