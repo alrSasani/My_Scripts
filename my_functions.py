@@ -4,7 +4,7 @@ import sys
 import numpy as np
 #from interface_xmls import *
 import interface_xmls
-import P_interface_xmls
+# import P_interface_xmls
 import phonopy
 from phonopy import Phonopy
 from phonopy.structure.atoms import PhonopyAtoms
@@ -36,6 +36,85 @@ from My_simulations import MB_sim
 thz_cm = 33.356/1.374673102
 Hatoev=Ha/Bohr
 import time
+
+def get_str_disp(mode,Phonon_obj,qpt = [0,0,0],get_disp=False,amp=1,path='./'):  
+    os.chdir(path)        
+    evecs,freqs = get_Evecs_Freqa_from_phonon_obj(Phonon_obj,qpt=qpt)
+    HS_STR = Atoms(numbers = Phonon_obj.unitcell.get_atomic_numbers(),scaled_positions=Phonon_obj.unitcell.scaled_positions,cell = Phonon_obj.unitcell.cell)
+    natom = len(Phonon_obj.unitcell.get_atomic_numbers())             
+    freq = freqs[mode]
+    # print(mode,f'   >>> Freq :  {freq:.2f} ', freq)
+    # os.system(f'mkdir Mod_{mode}_freq_{freq:.2f}')         
+    dis =  eigvec_to_eigdis(evecs[mode],HS_STR)
+    dis = amp*np.array(dis.real).reshape(natom,3)  
+    if get_disp:
+        dist_str = dis
+    else:
+        dist_str = Atoms(numbers = Phonon_obj.unitcell.get_atomic_numbers(),scaled_positions=Phonon_obj.unitcell.scaled_positions+dis,cell = Phonon_obj.unitcell.cell)
+    return(dist_str,freq)
+
+
+def plot_figs_Dips(modes,Phonon_obj,str_file,qpt = [0,0,0],amp=1,prj_dirs = [0,1,2,3],path='./'):  
+    vec_type=3  
+    os.chdir(path)        
+    evecs,freqs = get_Evecs_Freqa_from_phonon_obj(Phonon_obj,qpt=qpt)
+    # print(10*'---','EVECS LENGTH')
+    # print(len(evecs))
+    # Phonon_obj.set_irreps([qpt])
+    # Labels = Phonon_obj._irreps._get_ir_labels()
+    HS_STR = Atoms(numbers = Phonon_obj.unitcell.get_atomic_numbers(),scaled_positions=Phonon_obj.unitcell.scaled_positions,cell = Phonon_obj.unitcell.cell)
+    cell_p_Found = False
+    natom = len(Phonon_obj.unitcell.get_atomic_numbers())             
+    pol_consts = [[1,0,0],[0,1,0],[0,0,1],[1,1,1]]
+    chars_plot = ['x_','y_','z_','']
+    vst_in=open(str_file,'r')
+    for mod in modes:  
+        freq = freqs[mod]
+        print(mod,f'   >>> Freq :  {freq:.2f} ', freq)
+        os.system(f'mkdir Mod_{mod}_freq_{freq:.2f}')         
+        dis =  eigvec_to_eigdis(evecs[mod],HS_STR)
+        dis = np.array(dis.real).reshape(natom,3)        
+        for prj_dir,pol_const in zip(prj_dirs,pol_consts):
+            vst_in.seek(0,0)
+            vst_ot=open(f'Mod_{mod}_freq_{freq:.2f}/Mode_{mod}_{chars_plot[prj_dir]}proj.vesta','w')
+            disn=np.zeros((natom,3))
+            l=vst_in.readline()
+            vst_ot.write(l)
+            while l:
+                l=vst_in.readline()
+                vst_ot.write(l)
+                if l.strip().startswith('CELLP') and not cell_p_Found:
+                    l=vst_in.readline()
+                    lp=[float(l.strip().split()[0]),float(l.strip().split()[1]),float(l.strip().split()[2])]
+                    vst_ot.write(l)
+                    for i in range(len(dis)):
+                        disn[i,:]=dis[i,0]*lp[0],dis[i,1]*lp[1],dis[i,2]*lp[2]
+                        if i ==0:
+                            bg_vec=(disn[i,0])**2+(disn[i,1])**2+(disn[i,2])**2
+                        elif (bg_vec<(disn[i,0])**2+(disn[i,1])**2+(disn[i,2])**2):
+                            bg_vec=(disn[i,0])**2+(disn[i,1])**2+(disn[i,2])**2   
+                    mdls=amp/(bg_vec**0.5)  
+                if l.strip().startswith('BOUND'):
+                    vst_ot.write(' -0.1      1.1      -0.1      1.1      -0.1      1.1   ')
+
+                if l.strip().startswith('VECTR'):                                              
+                    for i in range(len(dis)):
+                        vst_ot.write(f'   {i+1}    {disn[i,0]*mdls*pol_const[0]:.6f}    {disn[i,1]*mdls*pol_const[1]:.6f}    {disn[i,2]*mdls*pol_const[2]:.6f} {0}\n')
+                        vst_ot.write(' {} 0 0 0 0\n'.format(i+1))
+                        vst_ot.write(' 0 0 0 0 0\n')
+                if l.strip().startswith('VECTT'):                
+                    if prj_dir==3:
+                        for i in range(len(dis)):
+                            vst_ot.write(' {} 0.300 255  0  0  {}\n'.format(i+1,vec_type))
+                    else:
+                        for i in range(len(dis)):
+                            if (disn[i,prj_dir]*mdls>0):
+                                vst_ot.write(' {} 0.300 255  0  0  {}\n'.format(i+1,vec_type))
+                            else:
+                                vst_ot.write(' {} 0.300 0  0  255  {}\n'.format(i+1,vec_type))
+            vst_ot.close() 
+
+    vst_in.close()
 
 def my_timer(my_Func):
     def time_wrapper(*args,**kwrags):
@@ -104,8 +183,7 @@ class Get_Pol():
             a,b,c=int(abs(ref_positions[aa,0]-ref_positions[1,0])/(ABC_SL[0]*0.99)),int(abs(ref_positions[aa,1]-ref_positions[1,1])/(ABC_SL[1]*0.99)),int(abs(ref_positions[aa,2]-ref_positions[1,2])/(ABC_SL[2]*0.99))
             # print(a,b,c,ref_positions[aa,2],ref_positions[1,2])
             NNs = np.append(aa,NNs)
-            for j in NNs:
-                
+            for j in NNs:                
                 pol_mat[a,b,c,:] += self.wght[self.chmsym[j]]*np.dot(disp_proj[j],self.BEC_ref[k,j%5,:,:]) 
                 
         pol_mat=16*pol_mat/v0
@@ -137,6 +215,10 @@ class Get_Pol():
         tot_pol=16*tot_pol/v0
         return(tot_pol)
 
+    def get_layer_pol(self,Str_dist):
+
+        pass
+
 def get_BEC_SCLL(SCLL,SCLL_MAT,har_xml):
     my_xml_sys = SCXML.xml_sys(har_xml)
     my_xml_sys.get_ase_atoms()
@@ -164,6 +246,53 @@ def eigvec_eigdis(eigvec,atoms):
             cntr = i*3+j
             eigdis[cntr]=eig_temp[cntr]*(masses[i]**0.5)
     return(eigvec.reshape(natm,3))
+
+def get_image_dta(nc_path,istep=-1):
+    NC_DTA = mync.hist_reader(nc_path)
+    etotal =NC_DTA.get_etotal()[istep]
+    atomic_number = NC_DTA.get_tot_numbers()
+    Nimages = len(etotal)
+    xred_f = NC_DTA.get_xred()[istep]
+    RSET_f_Bhr = NC_DTA.get_RSET()[istep]    
+    image_atoms = []
+    for ii in range(Nimages):
+        atms_n = Atoms(numbers=atomic_number,cell=RSET_f_Bhr[ii]*Bohr,scaled_positions=xred_f[ii],pbc=True)
+        #write(f'POSCAR_{ii}',atms_n,format='vasp')
+        image_atoms.append(atms_n) 
+
+    return(image_atoms,etotal) 
+
+def eigvec_to_eigdis(eigvec,atoms):
+    natm=len(atoms)
+    masses = atoms.get_masses()
+    eig_temp=eigvec.reshape(3*natm)
+    eigdis=np.zeros(3*natm,dtype=complex)
+    for i in range(natm):
+        for j in range(3):
+            cntr = i*3+j
+            eigdis[cntr]=eig_temp[cntr]/(masses[i]**0.5)
+    return(eigdis.reshape(natm,3))
+
+def eigdis_to_eigvec(eigdis,atoms):
+    natm=len(atoms)
+    masses = atoms.get_masses()
+    eig_temp=eigdis.reshape(3*natm)
+    eigvec=np.zeros(3*natm,dtype=complex)
+    for i in range(natm):
+        for j in range(3):
+            cntr = i*3+j
+            eigvec[cntr]=eig_temp[cntr]*(masses[i]**0.5)
+    return(eigvec.reshape(natm,3))
+
+def get_Evecs_Freqa_from_phonon_obj(Phonon,qpt=[0,0,0]):
+    natom = len(Phonon.unitcell.numbers)
+    evecs0 = np.array(Phonon.get_frequencies_with_eigenvectors(qpt)[1])
+    Freqs = np.array(Phonon.get_frequencies_with_eigenvectors(qpt)[0])
+    evecs = []
+    for i in range(3*natom):
+        evecs.append(np.reshape(evecs0[:,i],(natom,3)))
+    return(evecs,Freqs)
+
 
 @my_timer
 def get_mapped_strcs(str_to_be_map,str_to_map_to,Ret_index=False):
@@ -285,12 +414,12 @@ def my_make_SL(a1,a2):
     my_SL=Atoms(numbers=numbers_SL,positions=car_SL, cell=cell_SL, pbc=True)
     return(my_SL)
 
-def write_SL_pot(har_xml1,anh_xml1,SC_mat1,har_xml2,anh_xml2,SC_mat2,str_str=0,pordc_str_trms=True):
-    mdl=P_interface_xmls.har_interface(har_xml1,SC_mat1,har_xml2,SC_mat2)
-    mdl.reshape_FCDIC()
-    mdl.write_xml(f'Har_int_{SC_mat1[2][2]}{SC_mat2[2][2]}.xml',asr=0,asr_chk=0)
-    my_intr = P_interface_xmls.anh_intrface(har_xml1,anh_xml1,SC_mat1,har_xml2,anh_xml2,SC_mat2,pordc_str_trms)
-    my_intr.wrt_anxml(f'Anh_intr{SC_mat1[2][2]}{SC_mat2[2][2]}.xml',str_str)
+# def write_SL_pot(har_xml1,anh_xml1,SC_mat1,har_xml2,anh_xml2,SC_mat2,str_str=0,pordc_str_trms=True):
+#     mdl=P_interface_xmls.har_interface(har_xml1,SC_mat1,har_xml2,SC_mat2)
+#     mdl.reshape_FCDIC()
+#     mdl.write_xml(f'Har_int_{SC_mat1[2][2]}{SC_mat2[2][2]}.xml',asr=0,asr_chk=0)
+#     my_intr = P_interface_xmls.anh_intrface(har_xml1,anh_xml1,SC_mat1,har_xml2,anh_xml2,SC_mat2,pordc_str_trms)
+#     my_intr.wrt_anxml(f'Anh_intr{SC_mat1[2][2]}{SC_mat2[2][2]}.xml',str_str)
 
 def write_SC_pot(my_harf,my_Anhf,scll,my_atoms,har_out,anh_out):
     sc_maker=my_sc_maker(my_harf,scll)
@@ -455,6 +584,7 @@ def get_phonon(har_xml, Anh_xml, phon_scll=None, str_ten=np.zeros((3,3)), factor
            cell = xml_atms.get_cell()+np.dot(str_ten,xml_atms.get_cell()),
            scaled_positions = xml_atms.get_scaled_positions())
     # print(10*'**')  #
+    print('cell_of_phonons     \n',xml_atms.get_cell()+np.dot(str_ten,xml_atms.get_cell()))
 
     phonon = Phonopy(unitcell, phon_scll,factor = factor )
 
@@ -496,6 +626,8 @@ def get_phonon(har_xml, Anh_xml, phon_scll=None, str_ten=np.zeros((3,3)), factor
     if dipdip_range is not None:
         my_sim.inpt['dipdip_range'] = dipdip_range
     my_sim.inpt['dipdip'] = dipdip    
+    my_sim.inpt['prt_model']  = 2
+    my_sim.inpt['dipdip_prt']  =  1
     # RUNING MB
     os.chdir(sim_path)
     my_sim.test_set = 'Phonon_dist_HIST.nc'
@@ -664,16 +796,11 @@ def DDB_IFC_phonon(phonon,ngqpt,str_ten,UC=None,BEC_in=None,eps_inf_in=None,mod_
 
 
 def str_mult(a,b):
-    '''this function returns multiplication of two strings as like :
-        a   >  x      b   >>    a result    >   a x'''
     my_list = [*a.split(),*b.split()]
     my_list.sort()
-    print('a   > ',a,'     b   >>   ',b, 'result    >  ',' '.join(my_list))    
     return(' '.join(my_list))
 
 def terms_mult(T_1,T_2):
-    '''This function returns multiplication of two terms T_1 and T_2 
-    T1  >   {'z': 1, 'c': 1}  T2  >  {'z': 1, 'c': 1}  ===>   T1T2  > {'z z': 1, 'c z': 2, 'c c': 1}'''
     T1T2 = {}
     for i in T_1.keys():
         for j in T_2.keys():
@@ -685,15 +812,12 @@ def terms_mult(T_1,T_2):
     return(T1T2)
 
 def get_pwr_N(T1,n):
-    '''This function return term T1 to the power of n'''
     if n-1!=0:
         return(terms_mult(get_pwr_N(T1,n-1),T1))
     else:
         return(T1)
 
 def re_order_terms(T1):
-    '''This function changes a dictionary written as {' x x x : 1} to {x^3 : 1}
-    T1  >>   {'  x': 0.2, ' ': 0.010000000000000002} Fin_dict >>   {'x^1': 0.2, '': 0.010000000000000002}'''
     fin_dict = {}
     for key in T1.keys():
         my_pwr_list = {}
@@ -713,7 +837,6 @@ def re_order_terms(T1):
         New_key = ' '.join(New_key)
         fin_dict[New_key] = T1[key]
     return(fin_dict)
-
 
 def get_terms_diff(trms1,trms2):
     diff_list = []
