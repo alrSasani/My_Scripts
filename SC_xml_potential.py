@@ -10,7 +10,6 @@ from tools import find_index, mapping
 ###############################################################################
 
 class Har_sc_maker():
-
     def __init__(self, xml_file, SC_mat,strain_in=np.zeros((3,3))):
         self.xml = xml_io.Xml_sys_reader(xml_file)
         self.xml.get_ase_atoms()
@@ -150,6 +149,7 @@ class Har_sc_maker():
             self.SC_corr_forc[k] = np.array(lst)
 
     def write_xml(self, out_put):
+        xml_dta = {}
         if not self.has_FIN_FCDIC:
             self.reshape_FCDIC()
         self.xml.get_str_cp()
@@ -160,14 +160,15 @@ class Har_sc_maker():
         # self.get_SC_BEC()
         self.xml.get_tot_forces()
         if self.has_tot_FC:
-            tSC_FC = self.Fin_tot_FC
-            keys = tSC_FC.keys()
+            keys = self.Fin_tot_FC.keys()
+            xml_dta['SC_total_FC'] = self.Fin_tot_FC
+            xml_dta['has_tot_FC'] = self.has_tot_FC            
         else:
+            xml_dta['has_tot_FC'] = self.has_tot_FC 
             keys = SC_FC.keys()
         self.get_SC_corr_forc()
         SCL_elas = ((self.xml.ela_cons)*self.SC_num_Uclls)
-        xml_dta = {}
-        xml_dta['ncell'] = self.xml.ncll
+
         xml_dta['keys'] = keys
         xml_dta['SCL_elas'] = SCL_elas
         xml_dta['SCL_ref_energy'] = self.SC_num_Uclls*self.xml.ref_eng
@@ -177,9 +178,8 @@ class Har_sc_maker():
         xml_dta['SC_BEC'] = self.mySC.get_array('BEC') 
         xml_dta['SC_atoms_pos'] = self.mySC.get_positions()/Bohr
         xml_dta['SC_local_FC'] = self.Fin_loc_FC
-        xml_dta['SC_total_FC'] = tSC_FC
-        xml_dta['has_tot_FC'] = self.has_tot_FC
-        xml_dta['SC_corr_forc'] = self.SC_corr_forc  
+
+        xml_dta['SC_corr_forc'] = self.mySC.get_array('str_ph') #self.SC_corr_forc  
         xml_dta['strain'] = self.xml.strain
         xml_dta['my_atm_list'] = range(len(self.mySC))
 

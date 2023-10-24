@@ -414,9 +414,10 @@ def write_anh_xml(coeff,trms,fout):
     output = open(fout, 'w')
     output.write('<?xml version="1.0" ?>\n')
     output.write('<Heff_definition>\n')
+
     for i, key in enumerate(coeff.keys()):
         output.write('  <coefficient number="{}" value="{}" text="{}">\n'.format(
-            coeff[key]['number'], coeff[key]['value'], coeff[key]['text'],))
+            i+1, coeff[key]['value'], coeff[key]['text'],))
         for j in range(len(trms[i])):
             for k in range(int(trms[i][j][-1]['dips'])):
                 if (k == 0):
@@ -442,7 +443,6 @@ def write_anh_xml(coeff,trms,fout):
     output.write('</Heff_definition>\n')    
 
 def write_sys_xml(dta,out_put):
-    # ncll = dta['ncell']
     keys = dta['keys']
     SCL_elas = dta['SCL_elas'] 
     ref_eng = dta['SCL_ref_energy']
@@ -452,11 +452,13 @@ def write_sys_xml(dta,out_put):
     SC_BEC = dta['SC_BEC']
     SC_atoms_pos = dta['SC_atoms_pos']
     SC_FC = dta['SC_local_FC']
-    tSC_FC = dta['SC_total_FC']
+    
     has_tot_FC = dta['has_tot_FC']
     SC_CorForc = dta['SC_corr_forc']
     strain = dta['strain']
     my_atm_list = dta['my_atm_list']
+    if has_tot_FC:
+        tSC_FC = dta['SC_total_FC']
 
     out_xml = open(out_put, 'w')
     out_xml.write('<?xml version="1.0" ?>\n')
@@ -485,7 +487,7 @@ def write_sys_xml(dta,out_put):
     # xml.write('  <phonon>\n    <qpoint units="2pi*G0">  {}</qpoint>\n    <frequencies units="reciprocal cm">\n  {}    </frequencies>\n    <dynamical_matrix units="hartree/bohrradius**2">\n {}    </dynamical_matrix>\n   </phonon>\n'.format(self.xml.qpoint,tools.to_text(SC_phon),tools.to_text(SC_dmat)))
     for i in range(len(strain)):
         out_xml.write('  <strain_coupling voigt=" {}">\n    <strain>  {}    </strain>\n    <correction_force units="hartree/bohrradius">\n  {}    </correction_force>\n  </strain_coupling>\n'.format(
-            i, (strain[i]), tools.to_text(SC_CorForc[i])))
+            i, (strain[i]), tools.to_text(SC_CorForc[:,i,:])))
     out_xml.write('</System_definition>')
     out_xml.close()    
 
