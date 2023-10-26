@@ -29,10 +29,8 @@ class Har_interface:
      one side of the SL (these should have SC_mat1[0,0]=SC_mat2[0,0] and SC_mat1[1,1]=SC_mat2[1,1] while SC_mat1[2,2] and SC_mat2[2,2] define the thickness of the each material
      in two sides of the SL) '''
     
-    def __init__(self, xml_file1, SCMAT_1, xml_file2, SCMAT_2, symmetric=False,negelect_A_SITE=False,negelect_Tot_FCs=False):
+    def __init__(self, xml_file1, SCMAT_1, xml_file2, SCMAT_2, symmetric=False,negelect_A_SITE=False,negelect_Tot_FCs=False,NW_Strc = False):
         self.negelect_A_SITE = negelect_A_SITE
-        #self.negelect_Tot_FCs = negelect_Tot_FCs
-        #print(self.negelect_Tot_FCs )
         self.xmls_objs = {}
         self.uc_atoms = {}
         self.SCMATS = {}
@@ -43,7 +41,13 @@ class Har_interface:
         self.add_material(xml_file1, SCMAT_1)
         self.add_material(xml_file2, SCMAT_2)
         self.symmetric = symmetric
-        self.Constr_SL(symmetric)
+        self.NW_Strc = NW_Strc
+        if self.NW_Strc:
+            
+            self.Constr_NW()
+        else:
+            self.Constr_SL(symmetric)
+
         self.has_weight = False
         self.loc_SL_FCDIC = {}
         self.tot_SL_FCDIC = {}
@@ -73,18 +77,28 @@ class Har_interface:
         temp_tot_keys2 = self.xmls_objs[str(1)].tot_cells
         SC_mat2 = self.SCMATS[str(1)]
         ##############################
-        minxl = min(ceil(temp_loc_keys1[0][0]/SC_mat1[0][0]), ceil(temp_loc_keys2[0][0]/SC_mat1[0][0]), ceil(
-            temp_tot_keys1[0][0]/SC_mat1[0][0]), ceil(temp_tot_keys2[0][0]/SC_mat1[0][0]))
-        maxxl = max(ceil(temp_loc_keys1[0][1]/SC_mat1[0][0]), ceil(temp_loc_keys2[0][1]/SC_mat1[0][0]), ceil(
-            temp_tot_keys1[0][1]/SC_mat1[0][0]), ceil(temp_tot_keys2[0][1]/SC_mat1[0][0]))
+        minxl = min(ceil(temp_loc_keys1[0][0]/SC_mat1[0][0]), ceil(temp_loc_keys2[0][0]/SC_mat2[0][0]), ceil(
+            temp_tot_keys1[0][0]/SC_mat1[0][0]), ceil(temp_tot_keys2[0][0]/SC_mat2[0][0]))
+        
+        maxxl = max(ceil(temp_loc_keys1[0][1]/SC_mat1[0][0]), ceil(temp_loc_keys2[0][1]/SC_mat2[0][0]), ceil(
+            temp_tot_keys1[0][1]/SC_mat1[0][0]), ceil(temp_tot_keys2[0][1]/SC_mat2[0][0]))
+        
         minyl = min(ceil(temp_loc_keys1[1][0]/SC_mat1[1][1]), ceil(temp_loc_keys2[1][0]/SC_mat1[1][1]), ceil(
             temp_tot_keys1[1][0]/SC_mat1[1][1]), ceil(temp_tot_keys2[1][0]/SC_mat1[1][1]))
-        maxyl = max(ceil(temp_loc_keys1[1][1]/SC_mat1[1][1]), ceil(temp_loc_keys2[1][1]/SC_mat1[1][1]), ceil(
-            temp_tot_keys1[1][1]/SC_mat1[1][1]), ceil(temp_tot_keys2[1][1]/SC_mat1[1][1]))
-        minzl = min(ceil(temp_loc_keys1[2][0]/(SC_mat1[2][2]+SC_mat2[2][2])), ceil(temp_loc_keys2[2][0]/(SC_mat1[2][2]+SC_mat2[2][2])), ceil(
-            temp_tot_keys1[2][0]/(SC_mat1[2][2]+SC_mat2[2][2])), ceil(temp_tot_keys2[2][0]/(SC_mat1[2][2]+SC_mat2[2][2])))
-        maxzl = max(ceil(temp_loc_keys1[2][1]/(SC_mat1[2][2]+SC_mat2[2][2])), ceil(temp_loc_keys2[2][1]/(SC_mat1[2][2]+SC_mat2[2][2])), ceil(
-            temp_tot_keys1[2][1]/(SC_mat1[2][2]+SC_mat2[2][2])), ceil(temp_tot_keys2[2][1]/(SC_mat1[2][2]+SC_mat2[2][2])))
+        
+        maxyl = max(ceil(temp_loc_keys1[1][1]/SC_mat1[1][1]), ceil(temp_loc_keys2[1][1]/SC_mat2[1][1]), ceil(
+            temp_tot_keys1[1][1]/SC_mat1[1][1]), ceil(temp_tot_keys2[1][1]/SC_mat2[1][1]))
+        if self.NW_Strc :
+            minzl = min(ceil(temp_loc_keys1[2][0]/SC_mat1[2][2]), ceil(temp_loc_keys2[2][0]/SC_mat2[2][2]), ceil(
+                temp_tot_keys1[2][0]/SC_mat1[2][2]), ceil(temp_tot_keys2[2][0]/SC_mat2[2][2]))
+            
+            maxzl = max(ceil(temp_loc_keys1[2][1]/SC_mat1[2][2]), ceil(temp_loc_keys2[2][1]/SC_mat2[2][2]), ceil(
+                temp_tot_keys1[2][1]/SC_mat1[2][2]), ceil(temp_tot_keys2[2][1]/SC_mat2[2][2]))
+        else:
+            minzl = min(ceil(temp_loc_keys1[2][0]/(SC_mat1[2][2]+SC_mat2[2][2])), ceil(temp_loc_keys2[2][0]/(SC_mat1[2][2]+SC_mat2[2][2])), ceil(
+                temp_tot_keys1[2][0]/(SC_mat1[2][2]+SC_mat2[2][2])), ceil(temp_tot_keys2[2][0]/(SC_mat1[2][2]+SC_mat2[2][2])))
+            maxzl = max(ceil(temp_loc_keys1[2][1]/(SC_mat1[2][2]+SC_mat2[2][2])), ceil(temp_loc_keys2[2][1]/(SC_mat1[2][2]+SC_mat2[2][2])), ceil(
+                temp_tot_keys1[2][1]/(SC_mat1[2][2]+SC_mat2[2][2])), ceil(temp_tot_keys2[2][1]/(SC_mat1[2][2]+SC_mat2[2][2])))
         return(np.array([[minxl, maxxl], [minyl, maxyl], [minzl, maxzl]]))
         ###############################
 
@@ -212,7 +226,7 @@ class Har_interface:
         id_pars = {'0': '1', '1': '0'}
         self.get_match_pairs()
         maped_strs = self.maped_strs
-        Cells = self.get_cells()
+        Cells = self.get_cells()    ### FIXME FOR NWs
         STRC = self.STRC
         natom = len(STRC)
         STRC_inv_uc_cell = np.linalg.inv(self.STRC_uc_cell)
@@ -271,10 +285,6 @@ class Har_interface:
                                 FC_weights[atm_i])+np.array(FC_weights[atm_j])
                             avg_weights = tmp_weights/sum(tmp_weights)
 
-                            # if self.negelect_Tot_FCs:
-                            #     found_flgs1[1] = False
-                            #     found_flgs2[1] = False
-
                             if found_flgs1[0] or found_flgs2[0]:
                                 self.loc_SL_FCDIC[SC_key] = (
                                     avg_weights[int(id_i)]*temp_loc1 + avg_weights[int(id_j)]*temp_loc2)
@@ -289,8 +299,8 @@ class Har_interface:
 
         self.has_SC_FCDIC = True
 
-    def reshape_FCDIC(self, STRC=0):
-        # FIXME ADD MAPPING TO REQUIRED STRUCTURE
+    def reshape_FCDIC(self):
+        tol_10 = 10**-10
         STRC = self.STRC
         if not self.has_SC_FCDIC:
             self.get_SC_FCDIC()
@@ -323,62 +333,15 @@ class Har_interface:
                                    3:cnt_b*3+3] = self.tot_SL_FCDIC[my_index]
                     cnt_b += 1
                 cnt_a += 1
-            if loc_key_found:
+            if loc_key_found and any(abs(np.array(tmp_loc_FC.flatten()))>tol_10):   # chek in all not zero FIXME
                 self.Fin_loc_FC[my_key] = tmp_loc_FC
-            if tot_key_found:
+            if tot_key_found and any(abs(np.array(tmp_tot_FC.flatten()))>tol_10):
                 self.Fin_tot_FC[my_key] = tmp_tot_FC
         self.has_FIN_FCDIC = True
-
-    def Constr_SL(self, symmetric,ref_cell = 'cell_1'):
-        if symmetric:
-            zidir = self.SCMATS[str(0)][2, 2]
-            zdir_1 = int(zidir/2)
-            zdir_2 = int(zidir-zdir_1)
-            
-            SCMAT_2 = [[self.SCMATS[str(0)][0][0], 0, 0], [
-                0, self.SCMATS[str(0)][0][0], 0], [0, 0, zdir_2]]
-            SCMAT_1 = [[self.SCMATS[str(0)][0][0], 0, 0], [
-                0, self.SCMATS[str(0)][0][0], 0], [0, 0, zdir_1]]
-
-            a1 = make_supercell(self.uc_atoms[str(0)], SCMAT_1)
-            self.STRC_uc_cell = self.uc_atoms[str(0)].get_cell()
-            temp_UC_ATOMS = Atoms(numbers=self.uc_atoms[str(1)].get_atomic_numbers(
-            ), scaled_positions=self.uc_atoms[str(1)].get_scaled_positions(), cell=self.uc_atoms[str(0)].get_cell())
-            temp_UC_ATOMS.set_array(
-                'BEC', self.uc_atoms[str(1)].get_array('BEC'))
-            temp_UC_ATOMS.set_array(
-                'tag_id', self.uc_atoms[str(1)].get_array('tag_id'))
-            temp_UC_ATOMS.set_array(
-                'str_ph', self.uc_atoms[str(1)].get_array('str_ph'))
-            a2 = make_supercell(temp_UC_ATOMS, self.SCMATS[str(1)])
-            a3 = make_supercell(self.uc_atoms[str(0)], SCMAT_2)
-            temp_STRC = tools.make_SL(a1, a2,ref_cell = ref_cell)
-            STRC = tools.make_SL(temp_STRC, a3)
-            STRC.wrap()
-            self.STRC = STRC
-            self.get_ref_SL()
-
-        else:
-            a1 = make_supercell(self.uc_atoms[str(0)], self.SCMATS[str(0)])
-            self.STRC_uc_cell = self.uc_atoms[str(0)].get_cell()
-            temp_UC_ATOMS = Atoms(numbers=self.uc_atoms[str(1)].get_atomic_numbers(
-            ), scaled_positions=self.uc_atoms[str(1)].get_scaled_positions(), cell=self.uc_atoms[str(0)].get_cell())
-            temp_UC_ATOMS.set_array(
-                'BEC', self.uc_atoms[str(1)].get_array('BEC'))
-            temp_UC_ATOMS.set_array(
-                'tag_id', self.uc_atoms[str(1)].get_array('tag_id'))
-            temp_UC_ATOMS.set_array(
-                'str_ph', self.uc_atoms[str(1)].get_array('str_ph'))
-            a2 = make_supercell(temp_UC_ATOMS, self.SCMATS[str(1)])
-            STRC = tools.make_SL(a1, a2,ref_cell = ref_cell)
-            STRC.wrap()
-            self.STRC = STRC
-            self.get_ref_SL()
 
     def write_xml(self, out_put='test.xml'):
         xml_dta = {}
         ref_cell = self.ref_cell
-        self.get_ref_SL()
         self.cal_eps_inf()
         SCL_elas = (np.linalg.det(self.SCMATS['0'])*(self.xmls_objs['0'].ela_cons)+np.linalg.det(
             self.SCMATS['1'])*(self.xmls_objs['1'].ela_cons))
@@ -419,20 +382,11 @@ class Har_interface:
         eps['0'] = self.xmls_objs['0'].eps_inf
         eps['1'] = self.xmls_objs['1'].eps_inf
         SCL = {}
-
-        # SCL['0'] = 1 #np.sqrt( np.sqrt(eps_SL[0][0]**2+eps_SL[1][1]**2+eps_SL[2][2]**2) / np.sqrt(eps['0'][0][0]**2+eps['0'][1][1]**2+eps['0'][2][2]**2) )        
-        # SCL['1'] = 1 #np.sqrt( np.sqrt(eps_SL[0][0]**2+eps_SL[1][1]**2+eps_SL[2][2]**2) / np.sqrt(eps['1'][0][0]**2+eps['1'][1][1]**2+eps['1'][2][2]**2))
-        # print(10*'**** BEC Wgts')
-        # print(np.sqrt( np.sqrt(eps_SL[0][0]**2+eps_SL[1][1]**2+eps_SL[2][2]**2) / np.sqrt(eps['0'][0][0]**2+eps['0'][1][1]**2+eps['0'][2][2]**2) ))
-        # print(np.sqrt( np.sqrt(eps_SL[0][0]**2+eps_SL[1][1]**2+eps_SL[2][2]**2) / np.sqrt(eps['1'][0][0]**2+eps['1'][1][1]**2+eps['1'][2][2]**2)))
         
         SCL['0'] = [np.sqrt(eps_SL[0][0]/eps['0'][0][0]), np.sqrt(eps_SL[1]
                                                                   [1]/eps['0'][1][1]), np.sqrt(eps_SL[2][2]/eps['0'][2][2])]
         SCL['1'] = [np.sqrt(eps_SL[0][0]/eps['1'][0][0]), np.sqrt(eps_SL[1]
                                                                   [1]/eps['1'][1][1]), np.sqrt(eps_SL[2][2]/eps['1'][2][2])]
-        # print(10*'**** BEC Wgts')
-        # print(SCL['0'])
-        # print(SCL['1'])
 
         maped_strs = self.maped_strs
         dic_id_bec = {}
@@ -456,166 +410,156 @@ class Har_interface:
             SL_BEC[i, :, :] = FC_weight[i][int(id_i)]*(SCL[id_i]*dic_id_bec[id_i][tag_i]) + FC_weight[i][int(
                 id_pars[id_i])]*(SCL[id_pars[id_i]]*dic_id_bec[id_pars[id_i]][str(maped_strs[id_pars[id_i]][int(tag_i)])])
         self.SL_BEC = SL_BEC
+        self.ref_cell.set_array(
+            'BEC', SL_BEC)  
+        self.STRC.set_array(
+            'BEC', SL_BEC)        
 
     def cal_eps_inf(self):
         self.SL_eps_inf = np.zeros((3, 3))
-        l_1 = self.SCMATS['0'][2][2] / \
-            (self.SCMATS['0'][2][2]+self.SCMATS['1'][2][2])
-        l_2 = self.SCMATS['1'][2][2] / \
-            (self.SCMATS['0'][2][2]+self.SCMATS['1'][2][2])
-        eps_xx = l_1*self.xmls_objs['0'].eps_inf[0][0] + \
-            l_2*self.xmls_objs['1'].eps_inf[0][0]
-        
-        eps_yy = l_1*self.xmls_objs['0'].eps_inf[1][1] + \
-            l_2*self.xmls_objs['1'].eps_inf[1][1]
-        
-        eps_zz = 1/(l_1*(1/self.xmls_objs['0'].eps_inf[2]
-                    [2])+l_2*(1/self.xmls_objs['1'].eps_inf[2][2]))
+        if self.NW_Strc:
+            l_1 = np.linalg.det(self.SCMATS['0']) /(np.linalg.det(self.SCMATS['0'])+np.linalg.det(self.SCMATS['1']))
+
+            l_2 = np.linalg.det(self.SCMATS['1']) /(np.linalg.det(self.SCMATS['0'])+np.linalg.det(self.SCMATS['1']))
+            
+            eps_xx = l_1*self.xmls_objs['0'].eps_inf[0][0] + \
+                    l_2*self.xmls_objs['1'].eps_inf[0][0]
+            
+            eps_yy = l_1*self.xmls_objs['0'].eps_inf[1][1] + \
+                   l_2*self.xmls_objs['1'].eps_inf[1][1]
+            
+            eps_zz = l_1*self.xmls_objs['0'].eps_inf[1][1] + \
+                    l_2*self.xmls_objs['1'].eps_inf[1][1]           
+        else:
+
+            l_1 = self.SCMATS['0'][2][2] / (self.SCMATS['0'][2][2]+self.SCMATS['1'][2][2])
+            l_2 = self.SCMATS['1'][2][2] / (self.SCMATS['0'][2][2]+self.SCMATS['1'][2][2])
+            
+            eps_xx = l_1*self.xmls_objs['0'].eps_inf[0][0] + \
+                l_2*self.xmls_objs['1'].eps_inf[0][0]
+            
+            eps_yy = l_1*self.xmls_objs['0'].eps_inf[1][1] + \
+                l_2*self.xmls_objs['1'].eps_inf[1][1]
+            
+            eps_zz = 1/(l_1*(1/self.xmls_objs['0'].eps_inf[2]
+                        [2])+l_2*(1/self.xmls_objs['1'].eps_inf[2][2]))
+            
         self.SL_eps_inf[0, 0] = eps_xx
         self.SL_eps_inf[1, 1] = eps_yy
         self.SL_eps_inf[2, 2] = eps_zz
 
-    def Constr_ref_SL(self, symmetric,ref_cell = 'cell_1'):
+    def Constr_SL(self, symmetric):
+        cell_par1 = self.uc_atoms[str(0)].get_cell_lengths_and_angles()
+        cell_par2 = self.uc_atoms[str(1)].get_cell_lengths_and_angles()
+        cell_parr_diff = [0,0,(cell_par2[2]-cell_par1[2])/2]
+        dim_a = self.SCMATS[str(0)][0][0]
+        dim_b = self.SCMATS[str(0)][1][1]
+        zdir_L1 = self.SCMATS[str(0)][2, 2]
+        zdir_L2 = self.SCMATS[str(1)][2, 2]
+        STRC_atom_2 = Atoms(numbers=self.uc_atoms[str(1)].get_atomic_numbers(), scaled_positions = self.uc_atoms[str(1)].get_scaled_positions(), cell = self.uc_atoms[str(0)].get_cell())
+        STRC_atom_2.set_array(
+            'BEC', self.uc_atoms[str(1)].get_array('BEC'))
+        STRC_atom_2.set_array(
+            'tag_id', self.uc_atoms[str(1)].get_array('tag_id'))
+        STRC_atom_2.set_array(
+            'str_ph', self.uc_atoms[str(1)].get_array('str_ph')) 
+        
+        ref_atom_2 = Atoms(numbers=self.uc_atoms[str(1)].get_atomic_numbers(), positions = self.uc_atoms[str(1)].get_positions()+cell_parr_diff, cell = self.uc_atoms[str(1)].get_cell())
+        ref_atom_2.set_array(
+            'BEC', self.uc_atoms[str(1)].get_array('BEC'))
+        ref_atom_2.set_array(
+            'tag_id', self.uc_atoms[str(1)].get_array('tag_id'))
+        ref_atom_2.set_array(
+            'str_ph', self.uc_atoms[str(1)].get_array('str_ph'))         
+               
         if symmetric:
-            zidir = self.SCMATS[str(0)][2, 2]
-            zdir_1 = int(zidir/2)
-            zdir_2 = int(zidir-zdir_1)
-            # SCMAT_1 = self.SCMATS[str(0)]
-            # SCMAT_1[2,2] = zdir_1
-            # SCMAT_2 = self.SCMATS[str(0)]
-            # SCMAT_2[2,2] = zdir_2
-            SCMAT_2 = [[self.SCMATS[str(0)][0][0], 0, 0], [
-                0, self.SCMATS[str(0)][0][0], 0], [0, 0, zdir_2]]
-            SCMAT_1 = [[self.SCMATS[str(0)][0][0], 0, 0], [
-                0, self.SCMATS[str(0)][0][0], 0], [0, 0, zdir_1]]
+            zdir_1 = int(zdir_L1/2)
+            zdir_3 = int(zdir_L1-zdir_1)
+            L1 = self.uc_atoms[str(0)].repeat([dim_a,dim_b,zdir_1])
+            L2_ref = ref_atom_2.repeat([dim_a,dim_b,zdir_L2])    
+            L2_Strc = STRC_atom_2.repeat([dim_a,dim_b,zdir_L2])
+            L3 = self.uc_atoms[str(0)].repeat([dim_a,dim_b,zdir_3])
 
-            a1 = make_supercell(self.uc_atoms[str(0)], SCMAT_1)
-            self.STRC_uc_cell = self.uc_atoms[str(0)].get_cell()
-            temp_UC_ATOMS = Atoms(numbers=self.uc_atoms[str(1)].get_atomic_numbers(
-            ), scaled_positions=self.uc_atoms[str(1)].get_scaled_positions(), cell=self.uc_atoms[str(0)].get_cell())
-            temp_UC_ATOMS.set_array(
-                'BEC', self.uc_atoms[str(1)].get_array('BEC'))
-            temp_UC_ATOMS.set_array(
-                'tag_id', self.uc_atoms[str(1)].get_array('tag_id'))
-            temp_UC_ATOMS.set_array(
-                'str_ph', self.uc_atoms[str(1)].get_array('str_ph'))
-            a2 = make_supercell(temp_UC_ATOMS, self.SCMATS[str(1)])
-            a3 = make_supercell(self.uc_atoms[str(0)], SCMAT_2)
-            temp_STRC = tools.make_SL(a1, a2,ref_cell = ref_cell)
-            STRC = tools.make_SL(temp_STRC, a3)
-            STRC.wrap()
-            self.STRC = STRC
-            self.get_ref_SL()
+            res_L1_L2 = stack(L1,L2_ref,axis=2,fix=0.5,distance=None)
+            Strc_L1_L2 = stack(L1,L2_Strc,axis=2,fix=0,distance=None)
+            self.ref_cell = stack(res_L1_L2,L3,axis=2,fix=0.5,distance=None)
+            self.STRC = stack(Strc_L1_L2,L3,axis=2,fix=0,distance=None)  
 
+            self.STRC_uc_cell = self.uc_atoms[str(0)].get_cell()   
+            write('Ref_cell.cif',self.ref_cell,format='cif')
+            # write('STRC.cif',self.STRC,format='cif')                      
         else:
-            a1 = make_supercell(self.uc_atoms[str(0)], self.SCMATS[str(0)])
-            self.STRC_uc_cell = self.uc_atoms[str(0)].get_cell()
 
-            cell_par1 = self.uc_atoms[str(0)].get_cell_lengths_and_angles()
-            cell_par2 = self.uc_atoms[str(1)].get_cell_lengths_and_angles()
-            cell_parr_diff = cell_par2[2]-cell_par1[2]
-            # print(cell_parr_diff)
-            temp_cell = [cell_par1[0],cell_par1[1],cell_par2[2]]
-            temp_UC_ATOMS = Atoms(numbers=self.uc_atoms[str(1)].get_atomic_numbers(
-            ), scaled_positions=self.uc_atoms[str(1)].get_scaled_positions(), cell=temp_cell)
-            temp_UC_ATOMS.set_array(
-                'BEC', self.uc_atoms[str(1)].get_array('BEC'))
-            temp_UC_ATOMS.set_array(
-                'tag_id', self.uc_atoms[str(1)].get_array('tag_id'))
-            temp_UC_ATOMS.set_array(
-                'str_ph', self.uc_atoms[str(1)].get_array('str_ph'))
-            a2 = make_supercell(temp_UC_ATOMS, self.SCMATS[str(1)])
-            STRC = tools.make_SL(a1, a2,ref_cell = ref_cell,cell_parr_diff = cell_parr_diff/2)
-            STRC.wrap()
-            write('temp_a2.cif',a2,format='cif')
-            write('STRC.cif',STRC,format='cif')
-            return( STRC)
+            L1 = self.uc_atoms[str(0)].repeat([dim_a,dim_b,zdir_L1])
+            L2 = ref_atom_2.repeat([dim_a,dim_b,zdir_L2])   
+            L2_Strc = STRC_atom_2.repeat([dim_a,dim_b,zdir_L2])
+            # to be written in XML
+            self.ref_cell = stack(L1,L2,axis=2,fix=0,distance=None)
+            # To be used in creating AFCs
+            self.STRC = stack(L1,L2_Strc,axis=2,fix=0,distance=None)   
+            self.STRC_uc_cell = self.uc_atoms[str(0)].get_cell()  
 
-    def get_ref_SL(self):  # ref structure according to thesis of Carlos***
-        ELC1 = self.xmls_objs['0'].ela_cons
-        ELC2 = self.xmls_objs['1'].ela_cons
-        tmp_SC1 = make_supercell(self.uc_atoms['0'], self.SCMATS['1'])
-        mySC1 = make_supercell(self.uc_atoms['0'], self.SCMATS['0'])
-        SL1 = tools.make_SL(mySC1, tmp_SC1)
-        ABC_SL1 = SL1.cell.cellpar()[0:3]
-        # ScPOS_SL1 = SL1.get_scaled_positions()
-        SL1_cell = SL1.get_cell()
-        
-        tmp_SC2 = make_supercell(self.uc_atoms['1'], self.SCMATS['0'])
-        mySC2 = make_supercell(self.uc_atoms['1'], self.SCMATS['1'])
-        SL2 = tools.make_SL(tmp_SC2, mySC2)
-        # ABC_SL2 = SL2.cell.cellpar()[0:3]
-        # ScPOS_SL2 = SL2.get_scaled_positions()
-        SL2_cell = SL2.get_cell()
-        cell_1 = self.uc_atoms['0'].get_cell()
-        cell_2 = self.uc_atoms['1'].get_cell()
-        p1 = cell_1[2][2]/(cell_1[2][2]+cell_2[2][2])
-        p2 = cell_2[2][2]/(cell_1[2][2]+cell_2[2][2])
-        m = np.zeros((3))
-        for indx in range(3):
-            m[indx] = p1*ELC1[indx][indx]/(p2*ELC2[indx][indx])
-        a_avg = np.zeros((3))
-        for a_indx in range(3):
-            a_avg[a_indx] = cell_1[a_indx][a_indx]*cell_2[a_indx][a_indx] * \
-                (m[a_indx]*cell_1[a_indx][a_indx]+cell_2[a_indx][a_indx]) / \
-                (m[a_indx]*cell_1[a_indx][a_indx]**2+cell_2[a_indx][a_indx]**2)
-        # numbers1 = mySC1.get_atomic_numbers()
-        # numbers2 = mySC2.get_atomic_numbers()
-        # numbers_SL = [*numbers1, *numbers2]
-        a0 = self.SCMATS['0'][0][0]*a_avg[0]
-        a1 = self.SCMATS['0'][1][1]*a_avg[1]
-        a2 = self.SCMATS['0'][2][2]*a_avg[2]+self.SCMATS['1'][2][2]*a_avg[2]
- 
-        # cell = SL2_cell
-        cell_par1 = SL1.get_cell_lengths_and_angles()
-        # cell_par2 = SL2.get_cell_lengths_and_angles()
+            write('Ref_cell.cif',self.ref_cell,format='cif')
+            # write('STRC.cif',self.STRC,format='cif')            
 
-        # print(cell_par1)
-        # print(cell_par2)
-        # coeff_ab = 0.1
-        # coeff_c = coeff_ab
-        # cell =  [cell_par1[0], cell_par1[1]+coeff_ab*(cell_par2[1]-cell_par1[1]), cell_par1[2]+coeff_c*(cell_par2[2]-cell_par1[2])]  #SL2_cell    
-        # print(cell)
-        STRC = self.Constr_ref_SL(self.symmetric,ref_cell = 'cell_1')
-        # cell = [SL2_cell[0,0], SL2_cell[1,1], STRC.get_cell()[2,2]] 
-        # stress_ten = 0.01*np.array([[2,0,0],[0,2,0],[0,0,0]])
-        cell = [SL1_cell[0,0],SL1_cell[1,1], STRC.get_cell()[2,2]]
-        # cell = cell0  + np.dot(stress_ten,cell0)
-        # print(10*'---','Model cell \n',cell)
-        # print(cell)
-
-        my_SL = Atoms(numbers=STRC.get_atomic_numbers(), scaled_positions=STRC.get_scaled_positions(),
-                      cell=cell, pbc=True)
-        
-        write('my_SL_cif',my_SL,format='cif')
-        my_SL.set_array(
-            'BEC', self.STRC.get_array('BEC'))
-        my_SL.set_array(
-            'tag_id', self.STRC.get_array('tag_id'))
-        my_SL.set_array(
-            'str_ph', self.STRC.get_array('str_ph'))
-
-        self.ref_cell = my_SL
-
-    def get_str_NW(self):
+    def Constr_NW(self):
         atoms_1 = self.uc_atoms['0']
-        atoms_2 = self.uc_atoms['1']        
-        atoms_tmp = Atoms(numbers=atoms_2.get_atomic_numbers(),scaled_positions=atoms_1.get_scaled_positions(), cell=atoms_1.get_cell(), pbc=True)   
-        s1 = atoms_1.repeat([8,3,1])
-        s2 = atoms_1.repeat([3,2,1])
-        s3 = atoms_tmp.repeat([2,2,1])
+        atoms_2 = self.uc_atoms['1']  
+
+        cell_par1 = atoms_1.get_cell_lengths_and_angles()
+        cell_par2 = atoms_2.get_cell_lengths_and_angles()
+        cell_parr_diff = [0,0,(cell_par2[2]-cell_par1[2])/2]
+        dim_a1 = self.SCMATS[str(0)][0][0]
+        dim_b1 = self.SCMATS[str(0)][1][1]
+
+        dim_a2 = self.SCMATS[str(1)][0][0]
+        dim_b2 = self.SCMATS[str(1)][1][1]
+
+        zdir = self.SCMATS[str(0)][2, 2]
+
+        STRC_atom_2 = Atoms(numbers=atoms_2.get_atomic_numbers(), scaled_positions = atoms_2.get_scaled_positions(), cell = atoms_1.get_cell())
+        STRC_atom_2.set_array(
+            'BEC', self.uc_atoms[str(1)].get_array('BEC'))
+        STRC_atom_2.set_array(
+            'tag_id', self.uc_atoms[str(1)].get_array('tag_id'))
+        STRC_atom_2.set_array(
+            'str_ph', self.uc_atoms[str(1)].get_array('str_ph')) 
+        
+        ref_atom_2 = Atoms(numbers=atoms_2.get_atomic_numbers(), positions = atoms_2.get_positions()+cell_parr_diff, cell = atoms_2.get_cell())
+        ref_atom_2.set_array(
+            'BEC', self.uc_atoms[str(1)].get_array('BEC'))
+        ref_atom_2.set_array(
+            'tag_id', self.uc_atoms[str(1)].get_array('tag_id'))
+        ref_atom_2.set_array(
+            'str_ph', self.uc_atoms[str(1)].get_array('str_ph')) 
+         
+        dim_b_temp = int((dim_b1-dim_b2)/2)
+
+        dim_a_temp = int((dim_a1-dim_a2)/2)
+
+        s1 = atoms_1.repeat([dim_a1,dim_b_temp,zdir])
+
+        s2 = atoms_1.repeat([dim_a_temp,dim_b2,zdir])
+
+        s3 = STRC_atom_2.repeat([dim_a2,dim_b2,zdir])
+
         s4 = stack(s2,s3,axis=0)
         s5 = stack(s4,s2,axis=0)
         s6 = stack(s1,s5,axis=1)
         s7 = stack(s6,s1,axis=1)
-       
+        
+        write('POSCAR_ref',s7,vasp5=True,sort=True)
+        self.STRC_uc_cell = self.uc_atoms[str(0)].get_cell() 
+        self.STRC = s7
+        self.ref_cell = s7
+
 ###########################################################
 # interface Anharmonic potential generation:
 
 class Anh_intrface(Har_interface):
-    def __init__(self, har_xml1, anh_xml1, SC_mat1, har_xml2, anh_xml2, SC_mat2, symmetric=False):
+    def __init__(self, har_xml1, anh_xml1, SC_mat1, har_xml2, anh_xml2, SC_mat2, symmetric=False,NW_Strc = False):
         Har_interface.__init__(self, har_xml1, SC_mat1,
-                               har_xml2, SC_mat2, symmetric=symmetric)
+                               har_xml2, SC_mat2, symmetric=symmetric,NW_Strc = NW_Strc)
         self.coeff = {}
         self.terms = {}
         self.STRC_terms = {}
@@ -647,16 +591,14 @@ class Anh_intrface(Har_interface):
         tot_scmat = self.SCMATS[id_in].copy()
         tot_scmat[2,2] += self.SCMATS[id_pars[id_in]][2, 2]
         ncell = np.linalg.det(tot_scmat)
-
-
         prop_l1l2 = self.SCMATS[id_in][2][2]/(self.SCMATS[id_in][2][2]+self.SCMATS[id_pars[id_in]][2][2])
-
         wrapPos = ase.geometry.wrap_positions
         my_terms = []
         zdirec1 = range((self.SCMATS[id_in][2, 2]) +
                         (self.SCMATS[id_pars[id_in]][2, 2]))
         tmp_coeffs = {}
         for cc in range(len(coeff)):
+            print('Coeff # :', cc,'/',len(coeff),'  for id_mat : ',id_in)
             tmp_coeffs[cc] = coeff[cc]
             my_terms.append([])
             my_SAT_terms = trms[cc]  #self.get_SATs(trms[cc][0], hxml)
@@ -944,7 +886,8 @@ class Anh_intrface(Har_interface):
         for i in range(str_cntr):
             total_coeffs[coef_cntr] = str_coeff[i]
             total_tems.append(str_terms[i])
-            coef_cntr +=1            
+            coef_cntr +=1 
+
         xml_io.write_anh_xml(total_coeffs,total_tems,fout)
 
 

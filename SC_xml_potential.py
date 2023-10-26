@@ -34,8 +34,7 @@ class Har_sc_maker():
     def set_SC(self, tmp_atoms,strain=np.zeros((3,3))):
         mySC = make_supercell(tmp_atoms, self.SC_mat)
         cell = mySC.get_cell()+np.dot(strain,mySC.get_cell())
-        self.mySC = Atoms(numbers= mySC.get_atomic_numbers(),scaled_positions=mySC.get_scaled_positions(),cell = cell)
-        
+        self.mySC = Atoms(numbers= mySC.get_atomic_numbers(),scaled_positions=mySC.get_scaled_positions(),cell = cell)        
         self.mySC .set_array(
             'BEC', mySC.get_array('BEC'))
         self.mySC .set_array(
@@ -136,18 +135,6 @@ class Har_sc_maker():
 
         self.has_FIN_FCDIC = True
 
-    def get_SC_corr_forc(self):
-        self.xml.get_str_cp()
-        self.SC_corr_forc = {}
-        natm = self.SC_natom
-        str_pho = self.mySC.get_array('str_ph')
-        for k in range(6):
-            lst = []
-            for j in range(len(self.mySC)):
-                lst.append(str_pho[j][k])
-            np.reshape(lst, (natm, 3))
-            self.SC_corr_forc[k] = np.array(lst)
-
     def write_xml(self, out_put):
         xml_dta = {}
         if not self.has_FIN_FCDIC:
@@ -166,7 +153,7 @@ class Har_sc_maker():
         else:
             xml_dta['has_tot_FC'] = self.has_tot_FC 
             keys = SC_FC.keys()
-        self.get_SC_corr_forc()
+        # self.get_SC_corr_forc()
         SCL_elas = ((self.xml.ela_cons)*self.SC_num_Uclls)
 
         xml_dta['keys'] = keys
@@ -179,7 +166,7 @@ class Har_sc_maker():
         xml_dta['SC_atoms_pos'] = self.mySC.get_positions()/Bohr
         xml_dta['SC_local_FC'] = self.Fin_loc_FC
 
-        xml_dta['SC_corr_forc'] = self.mySC.get_array('str_ph') #self.SC_corr_forc  
+        xml_dta['SC_corr_forc'] = self.mySC.get_array('str_ph')   
         xml_dta['strain'] = self.xml.strain
         xml_dta['my_atm_list'] = range(len(self.mySC))
 
@@ -214,8 +201,8 @@ class Anh_sc_maker():
         total_coefs = len(coeff)
         tol_04 = 0.0001
         if self.missfit_strain:
-
-            print(f'The strain for material id  = ',self.voigt_strain)
+            
+            print(f'The strain for {my_atoms.get_chemical_formula()}  is ',self.voigt_strain)
             temp_voits = []
             strain_flag = []
             stain_flag_inp = []
@@ -242,12 +229,12 @@ class Anh_sc_maker():
                 for ntrm_cntr in range(len(new_coeffs)):
                     trms.append(new_trms[ntrm_cntr])
                     coeff[total_coefs+ntrm_cntr] = new_coeffs[ntrm_cntr]
-                print(f'number of Missfit Coeffiecinets for this material is {len(new_coeffs)}')
+                print(f'number of Missfit Coeffiecinets for this  {my_atoms.get_chemical_formula()}  is {len(new_coeffs)}')
 
                 total_coefs = len(coeff)
                 myxml_clss.get_ela_cons()
                 new_coeffs, new_trms = missfit_terms.get_elas_missfit(myxml_clss.ela_cons,self.voigt_strain)
-                print(f'Creating elastic terms for missfit strain : # of terms is {len(new_coeffs)}')
+                print(f'Creating elastic terms for missfit strain for  {my_atoms.get_chemical_formula()}  : # of terms is {len(new_coeffs)}')
                 for ntrm_cntr in range(len(new_coeffs)):
                     trms.append(new_trms[ntrm_cntr])
                     coeff[total_coefs+ntrm_cntr] = new_coeffs[ntrm_cntr]
@@ -355,8 +342,7 @@ class Anh_sc_maker():
 
     def wrt_anxml(self, fout):
         xml_io.write_anh_xml(self.SC_coeff,self.SC_terms,fout)
-
-  
+ 
 if __name__ == '__main__':
     pass
     # xmlf = 'Har_xml_141414'
