@@ -1,6 +1,7 @@
 import numpy as np
 from ase import Atoms
 import xml_io
+import my_functions
 
 def find_index(Mcor, Vec, tol=0.001):
     index = -1
@@ -263,3 +264,17 @@ def get_key(my_dict, val):
             return key
     return "key doesn't exist"
 
+def sng_domain(atom,dim=[1,1,1],atm_to_move={'Ti':[0,0,0.02]}):
+     red_corr = atom.get_scaled_positions()
+     chem_sym = atom.get_chemical_symbols()
+     nw_red = []
+     for i_rcor,rcord in enumerate(red_corr):
+          if chem_sym[i_rcor] in atm_to_move.keys():
+              nw_red.append(rcord+atm_to_move[chem_sym[i_rcor]]) 
+          else:
+              nw_red.append(rcord)
+     print(atom.get_cell())
+     tmp_atms = Atoms(numbers=atom.get_atomic_numbers(), scaled_positions=nw_red, cell=atom.get_cell()) 
+     new_SC = tmp_atms.repeat(dim)
+
+     return(new_SC)
