@@ -36,6 +36,7 @@ from My_simulations import MB_sim
 thz_cm = 33.356/1.374673102
 Hatoev=Ha/Bohr
 import time
+import xml_io
 
 def get_str_disp(mode,Phonon_obj,qpt = [0,0,0],get_disp=False,amp=1,path='./'):  
     os.chdir(path)        
@@ -220,7 +221,7 @@ class Get_Pol():
         pass
 
 def get_BEC_SCLL(SCLL,SCLL_MAT,har_xml):
-    my_xml_sys = SCXML.xml_sys(har_xml)
+    my_xml_sys = xml_io.Xml_sys_reader(har_xml)
     my_xml_sys.get_ase_atoms()
     UC_atms = my_xml_sys.ase_atoms
     my_SCLL = make_supercell(UC_atms,SCLL_MAT)
@@ -547,7 +548,7 @@ def get_phonon(har_xml, Anh_xml, phon_scll=None, str_ten=np.zeros((3,3)), factor
                dipdip=1,path='/tmp/',UC=None, SIM_cell=None, disp_amp=0.01, Files_prefix='phonon', opt_cell=2,cal_nac=False,BEC_in=None,eps_inf_in=None,dipdip_range=None):
     if UC is None:
         try:
-            my_xml_sys = SCXML.xml_sys(har_xml)
+            my_xml_sys = xml_io.Xml_sys_reader(har_xml)
             my_xml_sys.get_ase_atoms()
             xml_atms = my_xml_sys.ase_atoms
             if cal_nac:
@@ -564,7 +565,7 @@ def get_phonon(har_xml, Anh_xml, phon_scll=None, str_ten=np.zeros((3,3)), factor
         xml_atms = UC
         if cal_nac:
             if BEC_in is None and eps_inf_in is None:
-                my_xml_sys = SCXML.xml_sys(har_xml)
+                my_xml_sys = xml_io.Xml_sys_reader(har_xml)
                 BEC = [my_xml_sys.BEC[key] for key in my_xml_sys.BEC.keys()]
                 my_xml_sys.get_eps_inf()
                 eps_inf = my_xml_sys.eps_inf

@@ -1,7 +1,7 @@
 import numpy as np
 from ase import Atoms
 import xml_io
-import my_functions
+# import my_functions
 
 def find_index(Mcor, Vec, tol=0.001):
     index = -1

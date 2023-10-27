@@ -872,16 +872,19 @@ class Anh_intrface(Har_interface):
                 str_coeff[str_cntr] = coeff1[i]
                 str_terms.append(trms1[i])
                 str_cntr += 1                 
-
+        print('coeffs anf terms lengst are :',len(coeff2),'  and ',len(trms2))
         for i in range(len(coeff2)):
-            if trms2[i][0][-1]['dips'] != 0 :
-                total_coeffs[coef_cntr] = coeff2[i]
-                total_tems.append(trms2[i])
-                coef_cntr +=1                
-            else:
-                str_coeff[str_cntr] = coeff2[i]
-                str_terms.append(trms2[i])
-                str_cntr += 1                 
+            try:
+                if trms2[i][0][-1]['dips'] != 0 :
+                    total_coeffs[coef_cntr] = coeff2[i]
+                    total_tems.append(trms2[i])
+                    coef_cntr +=1                
+                else:
+                    str_coeff[str_cntr] = coeff2[i]
+                    str_terms.append(trms2[i])
+                    str_cntr += 1     
+            except:
+                print(trms2[i])            
 
         for i in range(str_cntr):
             total_coeffs[coef_cntr] = str_coeff[i]
