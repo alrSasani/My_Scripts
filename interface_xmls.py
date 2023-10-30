@@ -505,10 +505,6 @@ class Har_interface:
     def Constr_NW(self):
         atoms_1 = self.uc_atoms['0']
         atoms_2 = self.uc_atoms['1']  
-
-        cell_par1 = atoms_1.get_cell_lengths_and_angles()
-        cell_par2 = atoms_2.get_cell_lengths_and_angles()
-        cell_parr_diff = [0,0,(cell_par2[2]-cell_par1[2])/2]
         dim_a1 = self.SCMATS[str(0)][0][0]
         dim_b1 = self.SCMATS[str(0)][1][1]
 
@@ -519,19 +515,22 @@ class Har_interface:
 
         STRC_atom_2 = Atoms(numbers=atoms_2.get_atomic_numbers(), scaled_positions = atoms_2.get_scaled_positions(), cell = atoms_1.get_cell())
         STRC_atom_2.set_array(
-            'BEC', self.uc_atoms[str(1)].get_array('BEC'))
+            'BEC', atoms_2.get_array('BEC'))
         STRC_atom_2.set_array(
-            'tag_id', self.uc_atoms[str(1)].get_array('tag_id'))
+            'tag_id', atoms_2.get_array('tag_id'))
         STRC_atom_2.set_array(
-            'str_ph', self.uc_atoms[str(1)].get_array('str_ph')) 
-        
-        ref_atom_2 = Atoms(numbers=atoms_2.get_atomic_numbers(), positions = atoms_2.get_positions()+cell_parr_diff, cell = atoms_2.get_cell())
-        ref_atom_2.set_array(
-            'BEC', self.uc_atoms[str(1)].get_array('BEC'))
-        ref_atom_2.set_array(
-            'tag_id', self.uc_atoms[str(1)].get_array('tag_id'))
-        ref_atom_2.set_array(
-            'str_ph', self.uc_atoms[str(1)].get_array('str_ph')) 
+            'str_ph', atoms_2.get_array('str_ph')) 
+
+        # cell_par1 = atoms_1.get_cell_lengths_and_angles()
+        # cell_par2 = atoms_2.get_cell_lengths_and_angles()
+        # cell_parr_diff = [0,0,(cell_par2[2]-cell_par1[2])/2]        
+        # ref_atom_2 = Atoms(numbers=atoms_2.get_atomic_numbers(), positions = atoms_2.get_positions()+cell_parr_diff, cell = atoms_2.get_cell())
+        # ref_atom_2.set_array(
+        #     'BEC', atoms_2.get_array('BEC'))
+        # ref_atom_2.set_array(
+        #     'tag_id', atoms_2.get_array('tag_id'))
+        # ref_atom_2.set_array(
+        #     'str_ph', atoms_2.get_array('str_ph')) 
          
         dim_b_temp = int((dim_b1-dim_b2)/2)
 
@@ -549,7 +548,8 @@ class Har_interface:
         s7 = stack(s6,s1,axis=1)
         
         write('POSCAR_ref',s7,vasp5=True,sort=True)
-        self.STRC_uc_cell = self.uc_atoms[str(0)].get_cell() 
+        self.STRC_uc_cell = atoms_1.get_cell() 
+        self.STRC_uc = atoms_1
         self.STRC = s7
         self.ref_cell = s7
 
@@ -568,8 +568,8 @@ class Anh_intrface(Har_interface):
             anh_xml1, self.uc_atoms['0'])
         self.coeff['1'], self.terms['1'] = xml_io.xml_anha_reader(
             anh_xml2, self.uc_atoms['1'])
+            
         self.has_weight = False
-
         self.get_match_pairs()
         if not self.has_weight:
             req_elemtsns = self.diff_elements
@@ -578,9 +578,8 @@ class Anh_intrface(Har_interface):
     def STRC_trms(self, id_in='0'):
         id_pars = {'0': '1', '1': '0'}
         tol_04 = 10**-4
-        UC_STR = self.uc_atoms[str(0)]
+        UC_STR = self.STRC_uc 
         coeff, trms = self.coeff[id_in], self.terms[id_in]
-        # print(trms[-1])
         Xred_STRC = self.STRC.get_scaled_positions()
         STRC_cell = self.STRC.get_cell()
         inv_STRC_cell = np.linalg.inv(STRC_cell)
@@ -591,21 +590,35 @@ class Anh_intrface(Har_interface):
         tot_scmat = self.SCMATS[id_in].copy()
         tot_scmat[2,2] += self.SCMATS[id_pars[id_in]][2, 2]
         ncell = np.linalg.det(tot_scmat)
-        prop_l1l2 = self.SCMATS[id_in][2][2]/(self.SCMATS[id_in][2][2]+self.SCMATS[id_pars[id_in]][2][2])
+
         wrapPos = ase.geometry.wrap_positions
         my_terms = []
-        zdirec1 = range((self.SCMATS[id_in][2, 2]) +
-                        (self.SCMATS[id_pars[id_in]][2, 2]))
+
+        if self.NW_Strc:
+            SCMATS_temp = np.zeros((3,3),dtype=int)
+            for idir in range(3):
+                SCMATS_temp[idir,idir]=int(max((self.SCMATS[id_in][idir,idir]),self.SCMATS[id_pars[id_in]][idir,idir]))
+
+            prop_l1l2 = np.linalg.det(self.SCMATS[id_in])/(np.linalg.det(self.SCMATS[id_in])+np.linalg.det(self.SCMATS[id_pars[id_in]])) 
+            zdirec1 = range(2*SCMATS_temp[2, 2])
+
+
+        else:
+            SCMATS_temp = self.SCMATS[id_in]
+            zdirec1 = range((self.SCMATS[id_in][2, 2]) +
+                        (self.SCMATS[id_pars[id_in]][2, 2]))  
+            prop_l1l2 = self.SCMATS[id_in][2][2]/(self.SCMATS[id_in][2][2]+self.SCMATS[id_pars[id_in]][2][2])                                  
+
         tmp_coeffs = {}
         for cc in range(len(coeff)):
-            print('Coeff # :', cc,'/',len(coeff),'  for id_mat : ',id_in)
             tmp_coeffs[cc] = coeff[cc]
             my_terms.append([])
-            my_SAT_terms = trms[cc]  #self.get_SATs(trms[cc][0], hxml)
+            my_SAT_terms = trms[cc]  
             for tc in range(len(my_SAT_terms)):
-                for prd1 in range(self.SCMATS[id_in][0, 0]):
-                    for prd2 in range(self.SCMATS[id_in][1, 1]):
+                for prd1 in range(SCMATS_temp[0, 0]):
+                    for prd2 in range(SCMATS_temp[1, 1]):
                         for prd3 in zdirec1:
+
                             my_term = []
                             disp_cnt = 0
                             prd_dis = np.dot(uc_cell, [prd1, prd2, prd3])
@@ -864,6 +877,9 @@ class Anh_intrface(Har_interface):
         coef_cntr = 1
         str_cntr = 0
         for i in range(len(coeff1)):
+            print(20*'-----')
+            print(coeff1[i])
+            print(len(trms1[i]))                   
             if trms1[i][0][-1]['dips'] != 0 :
                 total_coeffs[coef_cntr] = coeff1[i]
                 total_tems.append(trms1[i])
@@ -872,20 +888,17 @@ class Anh_intrface(Har_interface):
                 str_coeff[str_cntr] = coeff1[i]
                 str_terms.append(trms1[i])
                 str_cntr += 1                 
-        print('coeffs anf terms lengst are :',len(coeff2),'  and ',len(trms2))
+        # print('coeffs anf terms lengst are :',len(coeff2),'  and ',len(trms2))
         for i in range(len(coeff2)):
-            try:
-                if trms2[i][0][-1]['dips'] != 0 :
-                    total_coeffs[coef_cntr] = coeff2[i]
-                    total_tems.append(trms2[i])
-                    coef_cntr +=1                
-                else:
-                    str_coeff[str_cntr] = coeff2[i]
-                    str_terms.append(trms2[i])
-                    str_cntr += 1     
-            except:
-                print(trms2[i])            
-
+            if trms2[i][0][-1]['dips'] != 0 :
+                total_coeffs[coef_cntr] = coeff2[i]
+                total_tems.append(trms2[i])
+                coef_cntr +=1                
+            else:
+                str_coeff[str_cntr] = coeff2[i]
+                str_terms.append(trms2[i])
+                str_cntr += 1     
+         
         for i in range(str_cntr):
             total_coeffs[coef_cntr] = str_coeff[i]
             total_tems.append(str_terms[i])

@@ -127,6 +127,20 @@ def my_timer(my_Func):
         return(result)
     return(time_wrapper)
 
+# def plot_decorator(plt):
+#     SMALL_SIZE = 13
+#     MEDIUM_SIZE = 13
+#     BIGGER_SIZE = 13
+#     my_dpi=300
+#     plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
+#     plt.rc('axes', titlesize=SMALL_SIZE)     # fontsize of the axes title
+#     plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
+#     plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+#     plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+#     plt.rc('legend', fontsize=11)    # legend fontsize
+#     plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
+
+
 class Get_Pol():
     def __init__(self,Str_ref,BEC_ref,proj_dir = [1,1,1],cntr_at = ['Ti'],trans_mat = [1,1,1],dim_1=1,fast=False):
         self.wght = {'O':1/6,'Ba':1/8,'Sr':1/8,'Pb':1/8,'Ti':1} 
@@ -1249,3 +1263,19 @@ def find_clesest_atom(Super_cell,pos,atm_sym=None):
                 min_dist = dist
                 atm_min = i      
     return(atm_min)
+
+def anh_terms_mani(har_xml, anh_xml, output='test_mani.xml', terms_to_write=None):
+    xmlsys = xml_io.Xml_sys_reader(har_xml)
+    xmlsys.get_ase_atoms()
+    atoms = xmlsys.ase_atoms
+    anhXml = SCXML.Anh_sc_maker(har_xml, anh_xml)
+    SC_mat = np.eye(3, dtype=int)
+    anhXml.SC_trms(atoms, SC_mat)
+    new_terms = []
+    new_coeffs = {}
+    for i, ii in enumerate(terms_to_write):
+        new_terms.append(anhXml.SC_terms[ii])
+        new_coeffs[i] = anhXml.SC_coeff[ii]
+    anhXml.SC_terms = new_terms
+    anhXml.SC_coeff = new_coeffs
+    anhXml.wrt_anxml(output)

@@ -7,6 +7,7 @@ from ase.units import Ha, Bohr
 from os.path import exists
 import os
 from ase.io import write
+import matplotlib.pyplot as plt
 # from my_functions import map_strctures
 
 
@@ -529,6 +530,57 @@ class hist_reader():
         else:
             mdtemp = self.dso.variables['mdtemp'][:][i]
         return(mdtemp)
+
+    def plot_etotal(self,plot_step=0,output='Etotal'):
+        fig,ax = plt.subplots()  
+        SMALL_SIZE = 13
+        MEDIUM_SIZE = 13
+        BIGGER_SIZE = 13
+        my_dpi=300
+        plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
+        plt.rc('axes', titlesize=SMALL_SIZE)     # fontsize of the axes title
+        plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
+        plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+        plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+        plt.rc('legend', fontsize=11)    # legend fontsize
+        plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title                                             
+        Eng_tmp = np.array(self.get_etotal())
+        plt.plot(Eng_tmp[plot_step:],label='E_total')
+        plt.xlabel('Steps')       
+        plt.ylabel('Etotal(Ha)')      
+        plt.savefig(f'{output}')
+    
+    def plot_stress(self,plot_step=0,output='Stress'):
+        fig,ax = plt.subplots()   
+        SMALL_SIZE = 13
+        MEDIUM_SIZE = 13
+        BIGGER_SIZE = 13
+        my_dpi=300
+        plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
+        plt.rc('axes', titlesize=SMALL_SIZE)     # fontsize of the axes title
+        plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
+        plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+        plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+        plt.rc('legend', fontsize=11)    # legend fontsize
+        plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title                                         
+        stress_tmp = np.array(self.get_stress())
+
+        plt.plot(stress_tmp[plot_step:,0],label='sig_1')
+        plt.plot(stress_tmp[plot_step:,1],label='sig_2')
+        plt.plot(stress_tmp[plot_step:,2],label='sig_3')  
+        plt.plot(stress_tmp[plot_step:,3],label='sig_4')
+        plt.plot(stress_tmp[plot_step:,4],label='sig_5')
+        plt.plot(stress_tmp[plot_step:,5],label='sig_6')   
+        plt.xlabel('Steps')       
+        plt.ylabel('Stress(Ha/Bhr3)')       
+        plt.legend()                                 
+        plt.savefig(f'{output}')
+
+    def plot_acell():
+        pass
+
+
+
 
 
 def map_strctures(str_1,str_2,tol=0.5):  # the ordering is correct
