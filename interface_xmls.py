@@ -879,9 +879,9 @@ class Anh_intrface(Har_interface):
         coef_cntr = 1
         str_cntr = 0
         for i in range(len(coeff1)):
-            print(20*'-----')
-            print(coeff1[i])
-            print(len(trms1[i]))                   
+            # print(20*'-----')
+            # print(coeff1[i])
+            # print(len(trms1[i]))                   
             if trms1[i][0][-1]['dips'] != 0 :
                 total_coeffs[coef_cntr] = coeff1[i]
                 total_tems.append(trms1[i])
