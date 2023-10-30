@@ -470,8 +470,10 @@ class Har_interface:
         ref_atom_2.set_array(
             'tag_id', self.uc_atoms[str(1)].get_array('tag_id'))
         ref_atom_2.set_array(
-            'str_ph', self.uc_atoms[str(1)].get_array('str_ph'))         
-               
+            'str_ph', self.uc_atoms[str(1)].get_array('str_ph'))   
+
+        self.STRC_uc = self.uc_atoms[str(0)]      
+        self.STRC_uc_cell = self.uc_atoms[str(0)].get_cell() 
         if symmetric:
             zdir_1 = int(zdir_L1/2)
             zdir_3 = int(zdir_L1-zdir_1)
@@ -485,7 +487,7 @@ class Har_interface:
             self.ref_cell = stack(res_L1_L2,L3,axis=2,fix=0.5,distance=None)
             self.STRC = stack(Strc_L1_L2,L3,axis=2,fix=0,distance=None)  
 
-            self.STRC_uc_cell = self.uc_atoms[str(0)].get_cell()   
+              
             write('Ref_cell.cif',self.ref_cell,format='cif')
             # write('STRC.cif',self.STRC,format='cif')                      
         else:
@@ -497,7 +499,7 @@ class Har_interface:
             self.ref_cell = stack(L1,L2,axis=2,fix=0,distance=None)
             # To be used in creating AFCs
             self.STRC = stack(L1,L2_Strc,axis=2,fix=0,distance=None)   
-            self.STRC_uc_cell = self.uc_atoms[str(0)].get_cell()  
+            # self.STRC_uc_cell = self.uc_atoms[str(0)].get_cell()  
 
             write('Ref_cell.cif',self.ref_cell,format='cif')
             # write('STRC.cif',self.STRC,format='cif')            
