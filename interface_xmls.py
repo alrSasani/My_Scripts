@@ -361,7 +361,7 @@ class Har_interface:
         xml_dta['SCL_ref_energy'] =ref_eng
         xml_dta['SCL_lat'] = ref_cell.get_cell()/Bohr 
         xml_dta['eps_inf'] = self.SL_eps_inf 
-        xml_dta['atoms_mass'] = ref_cell.get_masses() 
+        xml_dta['atoms_mass'] = ref_cell.get_masses()   #ref_cell.get_array('atom_mass') #ref_cell.get_masses() 
         xml_dta['SC_BEC'] = self.SL_BEC 
         xml_dta['SC_atoms_pos'] = ref_cell.get_positions()/Bohr 
         xml_dta['SC_local_FC'] = self.Fin_loc_FC

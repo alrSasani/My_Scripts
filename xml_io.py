@@ -181,8 +181,9 @@ class Xml_sys_reader:
         self.ase_atoms.set_array('BEC', np.array(BEC))
         self.ase_atoms.set_array('tag_id', np.array(tag_id))
         self.ase_atoms.set_array('str_ph', np.array(str_ph_cp))
+        self.ase_atoms.set_array('atom_mass', np.array(amu))
         #self.ase_atoms.set_array('tag', tag)
-        self.ase_atoms.set_masses((amu))
+        # self.ase_atoms.set_masses((amu))
 
     def set_tags(self):
         self.get_ase_atoms()

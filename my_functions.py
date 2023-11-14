@@ -612,7 +612,8 @@ def get_phonon(har_xml, Anh_xml, phon_scll=None, str_ten=np.zeros((3,3)), factor
 
     print('symmetry in phonopy  >> ',phonon.get_symmetry().get_pointgroup(),phonon._symprec)
     #Supercells with displacemetns
-    phonon.generate_displacements(distance = disp_amp)
+    phonon.generate_displacements(distance = disp_amp, is_plusminus  = "True")
+
     supercells = phonon.supercells_with_displacements
     Super_cell = phonon.supercell
     path_phon = 'tmp_phonon'

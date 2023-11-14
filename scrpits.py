@@ -25,4 +25,4 @@ def int_model_maker(xmlf1, anh_file1, scmat1, xmlf2, anh_file2, scmat2, symmetri
                         scmat2, symmetric=symmetric, NW_Strc = NW_Strc)
     intf.wrt_anxml(Anhar_file)
     # print(intf.FC_weights)
-    return(STRC)    
+    return(har_xml)    
