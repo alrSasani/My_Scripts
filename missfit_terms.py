@@ -18,7 +18,7 @@ def find_str_phonon_coeffs( trms,Higher_order_strain=False):
    return(str_phonon_coeffs)
 
 def get_str_phonon_voigt( trms,  Higher_order_strain=False ,voigts=[1, 2, 3]):
-   '''This function returns the number of coefficients that have particulat strain phonon coupling'''
+   '''This function returns the number of coefficients that have strain phonon coupling'''
    str_phonon_coeffs = find_str_phonon_coeffs(trms,Higher_order_strain)
    str_phonon_voigt = []
 

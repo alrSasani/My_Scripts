@@ -3,12 +3,12 @@ import numpy as np
 import interface_xmls
 
 
-def SC_model_maker(my_harf,my_Anhf,scll,my_atoms,har_out,anh_out,strain_in=np.zeros((3,3)),missfit_strain=True,Higher_order_strain=False):
+def SC_model_maker(my_harf,my_Anhf,scll,my_SCll,har_out,anh_out,strain_in=np.zeros((3,3)),missfit_strain=True,Higher_order_strain=False):
     sc_maker=SC_pot.Har_sc_maker(my_harf,scll,strain_in)
-    sc_maker.reshape_FCDIC(my_atoms)
+    sc_maker.reshape_FCDIC(my_SCll)
     sc_maker.write_xml(har_out)
     anh_SCxml=SC_pot.Anh_sc_maker(my_harf,my_Anhf,strain_in,missfit_strain=missfit_strain,Higher_order_strain=Higher_order_strain)
-    anh_SCxml.SC_trms(my_atoms,scll)
+    anh_SCxml.SC_trms(my_SCll,scll)
     anh_SCxml.wrt_anxml(anh_out)
 
 def int_model_maker(xmlf1, anh_file1, scmat1, xmlf2, anh_file2, scmat2, symmetric=False, har_file='int_harmoni.xml', Anhar_file='int_harmoni.xml',
