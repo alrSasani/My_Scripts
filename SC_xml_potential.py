@@ -5,7 +5,7 @@ from ase.units import Bohr
 from ase.build import make_supercell,sort
 import xml_io
 import missfit_terms
-from tools import find_index, mapping
+import  tools 
 
 ###############################################################################
 
@@ -19,7 +19,6 @@ class Har_sc_maker():
         self.set_SC(self.my_atoms,strain=strain_in)
         # self.mySC = make_supercell(self.my_atoms, self.SC_mat)
         self.SC_natom = self.mySC.get_global_number_of_atoms()
-        self.SC_num_Uclls = np.linalg.det(SC_mat)
         self.has_SC_FCDIC = False
         self.has_FIN_FCDIC = False
         self.xml.get_loc_FC_dic()
@@ -29,8 +28,7 @@ class Har_sc_maker():
         self.tot_FC_dic = self.xml.tot_FC_dic
         self.loc_FC_dic = self.xml.loc_FC_dic
         self.xml.get_atoms()
-        self.atm_pos = self.xml.atm_pos
-        self.UC_natom = 5
+        # self.atm_pos = self.xml.atm_pos
 
     def set_SC(self, tmp_atoms,strain=np.zeros((3,3))):
         mySC = make_supercell(tmp_atoms, self.SC_mat)
@@ -43,48 +41,43 @@ class Har_sc_maker():
         self.mySC .set_array(
             'str_ph', mySC.get_array('str_ph'))
 
-    def find_tag_index(self, tags, tag):
-        for i, ii in enumerate(tags):
-            if tag[0] == ii[0] and tag[1] == ii[1]:
-                return(i)
+    # def find_tag_index(self, tags, tag):
+    #     for i, ii in enumerate(tags):
+    #         if tag[0] == ii[0] and tag[1] == ii[1]:
+    #             return(i)
 
-    def get_atm_ij_diff_in_UC(self):
-        STRC = self.mySC
-        natom = len(STRC)
-        STRC_uc_cell = self.STRC_uc_cell
-        tag_id = STRC.get_array('tag_id')
-        indx_tag = []
-        for i in range(natom):
-            indx_tag.append(self.find_tag_index(
-                self.my_atoms.get_array('tag_id'), tag_id[i]))
-        atm_ij_diff_in_mat = np.zeros((natom, natom, 3))
-        for i in range(natom):
-            for j in range(natom):
-                atm_ij_diff_in_mat[j, i] = np.dot(STRC_uc_cell, (self.my_atoms.get_scaled_positions()[
-                                                  indx_tag[i]]-self.my_atoms.get_scaled_positions()[indx_tag[j]]))
-        return(atm_ij_diff_in_mat)
+    # def get_atm_ij_diff_in_UC(self):
+    #     STRC = self.mySC
+    #     natom = len(STRC)
+    #     STRC_uc_cell = self.STRC_uc_cell
+    #     tag_id = STRC.get_array('tag_id')
+    #     indx_tag = []
+    #     for i in range(natom):
+    #         indx_tag.append(self.find_tag_index(
+    #             self.my_atoms.get_array('tag_id'), tag_id[i]))
+    #     atm_ij_diff_in_mat = np.zeros((natom, natom, 3))
+    #     for i in range(natom):
+    #         for j in range(natom):
+    #             atm_ij_diff_in_mat[j, i] = np.dot(STRC_uc_cell, (self.my_atoms.get_scaled_positions()[
+    #                                               indx_tag[i]]-self.my_atoms.get_scaled_positions()[indx_tag[j]]))
+    #     return(atm_ij_diff_in_mat)
 
-    def get_Uclls_in_STRC(self):
-        STRC = self.mySC
-        natom = len(STRC)
-        STR_POSs = STRC.get_positions()
-        atm_ij_diff_in_mat = self.get_atm_ij_diff_in_UC()
-        STRC_inv_uc_cell = np.linalg.inv(self.STRC_uc_cell)
-        cells_vecs = np.zeros((natom, natom, 3))
-        for atm_i in range(natom):
-            for atm_j in range(natom):
-                dists = STR_POSs[atm_i]-STR_POSs[atm_j] - \
-                    atm_ij_diff_in_mat[atm_j, atm_i]
-                cells_vecs[atm_i, atm_j, :] = np.dot(
-                    (1/0.98)*STRC_inv_uc_cell, dists)
-        return(cells_vecs)
-                
-    def get_SC_FCDIC(self):
-        STRC_inv_uc_cell = np.linalg.inv(self.STRC_uc_cell) 
-        STRC_Cell =  self.mySC.get_cell()      
-        CPOS = self.mySC.get_positions()
-        abc = self.my_atoms.cell.cellpar()[0:3]
-        ABC = self.mySC.cell.cellpar()[0:3]
+    # def get_Uclls_in_STRC(self):
+    #     STRC = self.mySC
+    #     natom = len(STRC)
+    #     STR_POSs = STRC.get_positions()
+    #     atm_ij_diff_in_mat = self.get_atm_ij_diff_in_UC()
+    #     STRC_inv_uc_cell = np.linalg.inv(self.STRC_uc_cell)
+    #     cells_vecs = np.zeros((natom, natom, 3))
+    #     for atm_i in range(natom):
+    #         for atm_j in range(natom):
+    #             dists = STR_POSs[atm_i]-STR_POSs[atm_j] - \
+    #                 atm_ij_diff_in_mat[atm_j, atm_i]
+    #             cells_vecs[atm_i, atm_j, :] = np.dot(
+    #                 (1/0.98)*STRC_inv_uc_cell, dists)
+    #     return(cells_vecs)
+
+    def get_period_cells(self):
         ncll_loc = self.xml.ncll
         if self.has_tot_FC:
             self.xml.get_tot_Per_clls()
@@ -96,35 +89,32 @@ class Har_sc_maker():
         xperiod = ceil(px/self.SC_mat[0][0])
         yperiod = ceil((py)/self.SC_mat[1][1])
         zperiod = ceil((pz)/self.SC_mat[2][2])
-        UC_natm = self.my_atoms.get_global_number_of_atoms()
+        return(xperiod,yperiod,zperiod) 
+                           
+    def get_SC_FCDIC(self):
+        STRC_inv_uc_cell = np.linalg.inv(self.STRC_uc_cell) 
+        tag_id = self.mySC.get_array('tag_id')
+        STRC_Cell =  self.mySC.get_cell()      
+        xperiod,yperiod,zperiod = self.get_period_cells()
         self.loc_SC_FCDIC = {}
         self.tot_SC_FCDIC = {}
         self.tot_mykeys = []
         self.loc_mykeys = []
-        Ucells_vecs_in_STRC = self.get_Uclls_in_STRC()        
+        Ucells_vecs_in_STRC = tools.get_Uclls_in_STRC()        
         for prd1 in range(-int(xperiod), int(xperiod)+1):
             for prd2 in range(-int(yperiod), int(yperiod)+1):
                 for prd3 in range(-int(zperiod), int(zperiod)+1):
                     SC_cell = '{} {} {}'.format(prd1, prd2, prd3)
-
                     per_dist = np.dot(np.array([prd1, prd2, prd3]), STRC_Cell)
                     Per_cells = np.dot((1/0.98)*STRC_inv_uc_cell, per_dist)
-
                     for atm_i in range(self.SC_natom):
+                        tag_i = tag_id[atm_i][0]
                         for atm_j in range(self.SC_natom):
-
-                            cell_b = Ucells_vecs_in_STRC[atm_j,
-                                                         atm_i] + Per_cells
-                            cell_b = list(map(int, cell_b))
-                            
-                            # dist = (CPOS[int(atm_j/UC_natm)*self.UC_natom][0]-CPOS[int(atm_i/UC_natm)*self.UC_natom][0],
-                            #         CPOS[int(atm_j/UC_natm)*self.UC_natom][1]-CPOS[int(atm_i/UC_natm)*self.UC_natom][1],
-                            #         CPOS[int(atm_j/UC_natm)*self.UC_natom][2]-CPOS[int(atm_i/UC_natm)*self.UC_natom][2])
-                            
-                            # cell_b = np.dot((1/0.98)*STRC_inv_uc_cell, dist)+Per_cells
-                            
+                            tag_j = tag_id[atm_j][0]
+                            cell_b = Ucells_vecs_in_STRC[atm_j,atm_i] + Per_cells
+                            cell_b = list(map(int, cell_b))                                                     
                             UC_key = '{}_{}_{}_{}_{}'.format(
-                                atm_i % UC_natm, atm_j % UC_natm, cell_b[0], cell_b[1], cell_b[2])
+                                tag_i, tag_j, cell_b[0], cell_b[1], cell_b[2])
                             SC_key = '{}_{}_{}_{}_{}'.format(
                                 atm_i, atm_j, prd1, prd2, prd3)
 
@@ -149,7 +139,7 @@ class Har_sc_maker():
         else:
             my_keys = self.loc_mykeys
         if tmp_sc is not None:
-            my_atm_list = mapping(tmp_sc,self.mySC)
+            my_atm_list = tools.mapping(tmp_sc,self.mySC)
             self.mySC = sort(self.mySC,tags = my_atm_list)
             # self.mySC=make_supercell(tmp_sc,self.SC_mat)
         else:
@@ -185,6 +175,7 @@ class Har_sc_maker():
         self.has_FIN_FCDIC = True
 
     def write_xml(self, out_put):
+        SC_num_Uclls = np.linalg.det(self.SC_mat)
         xml_dta = {}
         if not self.has_FIN_FCDIC:
             self.reshape_FCDIC()
@@ -203,11 +194,11 @@ class Har_sc_maker():
             xml_dta['has_tot_FC'] = self.has_tot_FC 
             keys = SC_FC.keys()
         # self.get_SC_corr_forc()
-        SCL_elas = ((self.xml.ela_cons)*self.SC_num_Uclls)
+        SCL_elas = ((self.xml.ela_cons)*SC_num_Uclls)
 
         xml_dta['keys'] = keys
         xml_dta['SCL_elas'] = SCL_elas
-        xml_dta['SCL_ref_energy'] = self.SC_num_Uclls*self.xml.ref_eng
+        xml_dta['SCL_ref_energy'] = SC_num_Uclls*self.xml.ref_eng
         xml_dta['SCL_lat'] = self.mySC.get_cell()/Bohr
         xml_dta['eps_inf'] = self.xml.eps_inf
         xml_dta['atoms_mass'] = self.mySC.get_masses()
@@ -324,8 +315,8 @@ class Anh_sc_maker():
                                     catm_bn = prd1 * \
                                         abc[0]+catm_b0[0], prd2*abc[1] + \
                                         catm_b0[1], prd3*abc[2]+catm_b0[2]
-                                    ind_an = find_index(CPOS, catm_an)
-                                    ind_bn = find_index(CPOS, catm_bn)
+                                    ind_an = tools.find_index(CPOS, catm_an)
+                                    ind_bn = tools.find_index(CPOS, catm_bn)
                                     #dst = distance.euclidean(catm_an, catm_bn)
                                     dst = [catm_an[0]-catm_bn[0], catm_an[1] -
                                            catm_bn[1], catm_an[2]-catm_bn[2]]
@@ -349,7 +340,7 @@ class Anh_sc_maker():
                                                 int(red_pos[1])-tmp_par[1]), int(int(red_pos[2])-tmp_par[2]))
                                             disp_pos = (red_pos[0]-(int(red_pos[0])-tmp_par[0]))*ABC[0], (red_pos[1]-(int(
                                                 red_pos[1])-tmp_par[1]))*ABC[1], (red_pos[2]-(int(red_pos[2])-tmp_par[2]))*ABC[2]
-                                            ind_bn = find_index(CPOS, disp_pos)
+                                            ind_bn = tools.find_index(CPOS, disp_pos)
                                         else:
                                             cell_b = '0 0 0'
                                         new_dis = {'atom_a': ind_an, 'cell_a': '0 0 0', 'atom_b': ind_bn, 'cell_b': cell_b, 'direction': trms[cc][

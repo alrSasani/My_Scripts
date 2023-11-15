@@ -263,3 +263,41 @@ def sng_domain(atom,dim=[1,1,1],atm_to_move={'Ti':[0,0,0.02]}):
      new_SC = tmp_atms.repeat(dim)
 
      return(new_SC)
+
+
+def find_tag_index(tags, tag):
+    for i, ii in enumerate(tags):
+        if tag[0] == ii[0] and tag[1] == ii[1]:
+            return(i)
+
+def get_atm_ij_diff_in_UC(STRC,uc_strc):
+    # STRC = self.mySC
+    natom = len(STRC)
+    STRC_uc_cell = uc_strc.get_cell()
+    tag_id = STRC.get_array('tag_id')
+    indx_tag = []
+    for i in range(natom):
+        indx_tag.append(find_tag_index(
+            uc_strc.get_array('tag_id'), tag_id[i]))
+    atm_ij_diff_in_mat = np.zeros((natom, natom, 3))
+    for i in range(natom):
+        for j in range(natom):
+            atm_ij_diff_in_mat[j, i] = np.dot(STRC_uc_cell, (uc_strc.get_scaled_positions()[
+                                                indx_tag[i]]-uc_strc.get_scaled_positions()[indx_tag[j]]))
+    return(atm_ij_diff_in_mat)
+
+def get_Uclls_in_STRC(STRC,uc_strc):
+    # STRC = self.mySC
+    STRC_uc_cell = uc_strc.get_cell()
+    natom = len(STRC)
+    STR_POSs = STRC.get_positions()
+    atm_ij_diff_in_mat = get_atm_ij_diff_in_UC(STRC,uc_strc)
+    STRC_inv_uc_cell = np.linalg.inv(STRC_uc_cell)
+    cells_vecs = np.zeros((natom, natom, 3))
+    for atm_i in range(natom):
+        for atm_j in range(natom):
+            dists = STR_POSs[atm_i]-STR_POSs[atm_j] - \
+                atm_ij_diff_in_mat[atm_j, atm_i]
+            cells_vecs[atm_i, atm_j, :] = np.dot(
+                (1/0.98)*STRC_inv_uc_cell, dists)
+    return(cells_vecs)
