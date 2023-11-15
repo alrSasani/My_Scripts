@@ -380,25 +380,6 @@ def get_avg_str(NC_HIST,init_stp=0):
     AVG_Str_Hist = Atoms(numbers=numbers,scaled_positions=avg_str, cell=avg_Rset)
     return(AVG_Str_Hist)
 
-def get_avg_str_old(NC_HIST,init_stp=0):
-    dso=nc.Dataset(NC_HIST)
-    RSET=dso.variables['rprimd'][:]
-    xcart=dso.variables['xcart'][:]
-    typ0=dso.variables['typat'][:]
-    numbers0=dso.variables['znucl'][:]
-    numbers=[numbers0[:][int(tt)-1] for tt in typ0[:]]
-    sum_str=np.zeros((len(xcart[0]),3))
-    sum_Rset=np.zeros((3,3))
-    cntr=0
-    for str_cntr in range(init_stp,len(xcart)):
-        cntr+=1
-        sum_str+=xcart[str_cntr]
-        sum_Rset+=RSET[str_cntr]
-    avg_str=sum_str/cntr
-    avg_Rset=sum_Rset/cntr
-    AVG_Str_Hist = Atoms(numbers=numbers,positions=avg_str*Bohr, cell=avg_Rset*Bohr, pbc=True)
-    return(AVG_Str_Hist)
-
 def get_NC_str(NC_HIST,stp=0):
     dso=nc.Dataset(NC_HIST)
     RSET=dso.variables['rprimd'][:]
@@ -578,9 +559,6 @@ class hist_reader():
 
     def plot_acell():
         pass
-
-
-
 
 
 def map_strctures(str_1,str_2,tol=0.5):  # the ordering is correct

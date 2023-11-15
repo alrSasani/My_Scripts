@@ -1,8 +1,7 @@
 import numpy as np
 from ase import Atoms
-import xml_io
-# import SC_xml_potential
-# import my_functions
+from ase.data import atomic_masses
+
 
 def find_index(Mcor, Vec, tol=0.001):
     index = -1
@@ -78,22 +77,6 @@ def mapping(str_to_be_map, str_to_map_to,Ret_index=True):
    ), scaled_positions=xred_maped, cell=str_to_be_map.get_cell())
    return(maped_str)
 
-# def anh_terms_mani(har_xml, anh_xml, output='test_mani.xml', terms_to_write=None):
-#     xmlsys = xml_io.Xml_sys_reader(har_xml)
-#     xmlsys.get_ase_atoms()
-#     atoms = xmlsys.ase_atoms
-#     anhXml = SC_xml_potential.Anh_sc_maker(har_xml, anh_xml)
-#     SC_mat = np.eye(3, dtype=int)
-#     anhXml.SC_trms(atoms, SC_mat)
-#     new_terms = []
-#     new_coeffs = {}
-#     for i, ii in enumerate(terms_to_write):
-#         new_terms.append(anhXml.SC_terms[ii])
-#         new_coeffs[i] = anhXml.SC_coeff[ii]
-#     anhXml.SC_terms = new_terms
-#     anhXml.SC_coeff = new_coeffs
-#     anhXml.wrt_anxml(output)
-
 def get_mapped_strcs(str_to_be_map, str_to_map_to, Ret_index=False):
     natom = len(str_to_map_to.get_scaled_positions())
     natom2 = len(str_to_be_map.get_scaled_positions())
@@ -162,10 +145,11 @@ def terms_comp(trms1, trms2):
 
 # This function is used to get atomic numbber for the mass of an atoms
 
-
-def get_atom_num(atomic_mass):
-    for i in range(len(ase.data.atomic_masses)):
-        if abs(ase.data.atomic_masses[i]-atomic_mass) < 0.1:
+def get_atom_num(atomic_mass, tol=0.1):
+    if abs(atomic_mass-208) < 1:
+        tol = 0.001
+    for i in range(len(atomic_masses)):
+        if abs(atomic_masses[i]-atomic_mass) < tol:
             mynum = i
     return(mynum)
 

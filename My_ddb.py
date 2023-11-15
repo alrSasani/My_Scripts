@@ -92,8 +92,6 @@ class ddb_reader():
                  'znucl'):
                 self.znucl[:]=[float(x.replace('D','E')) for x in ii.strip().split()[1:]]
 
-
-
     def get_atoms(self):
         #pass
         self.get_struct()

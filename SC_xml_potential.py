@@ -15,6 +15,7 @@ class Har_sc_maker():
         self.xml.get_ase_atoms()
         self.my_atoms = self.xml.ase_atoms
         self.SC_mat = SC_mat
+        self.STRC_uc_cell = self.my_atoms.get_cell()
         self.set_SC(self.my_atoms,strain=strain_in)
         # self.mySC = make_supercell(self.my_atoms, self.SC_mat)
         self.SC_natom = self.mySC.get_global_number_of_atoms()
@@ -41,8 +42,46 @@ class Har_sc_maker():
             'tag_id', mySC.get_array('tag_id'))
         self.mySC .set_array(
             'str_ph', mySC.get_array('str_ph'))
-        
+
+    def find_tag_index(self, tags, tag):
+        for i, ii in enumerate(tags):
+            if tag[0] == ii[0] and tag[1] == ii[1]:
+                return(i)
+
+    def get_atm_ij_diff_in_UC(self):
+        STRC = self.mySC
+        natom = len(STRC)
+        STRC_uc_cell = self.STRC_uc_cell
+        tag_id = STRC.get_array('tag_id')
+        indx_tag = []
+        for i in range(natom):
+            indx_tag.append(self.find_tag_index(
+                self.my_atoms.get_array('tag_id'), tag_id[i]))
+        atm_ij_diff_in_mat = np.zeros((natom, natom, 3))
+        for i in range(natom):
+            for j in range(natom):
+                atm_ij_diff_in_mat[j, i] = np.dot(STRC_uc_cell, (self.my_atoms.get_scaled_positions()[
+                                                  indx_tag[i]]-self.my_atoms.get_scaled_positions()[indx_tag[j]]))
+        return(atm_ij_diff_in_mat)
+
+    def get_Uclls_in_STRC(self):
+        STRC = self.mySC
+        natom = len(STRC)
+        STR_POSs = STRC.get_positions()
+        atm_ij_diff_in_mat = self.get_atm_ij_diff_in_UC()
+        STRC_inv_uc_cell = np.linalg.inv(self.STRC_uc_cell)
+        cells_vecs = np.zeros((natom, natom, 3))
+        for atm_i in range(natom):
+            for atm_j in range(natom):
+                dists = STR_POSs[atm_i]-STR_POSs[atm_j] - \
+                    atm_ij_diff_in_mat[atm_j, atm_i]
+                cells_vecs[atm_i, atm_j, :] = np.dot(
+                    (1/0.98)*STRC_inv_uc_cell, dists)
+        return(cells_vecs)
+                
     def get_SC_FCDIC(self):
+        STRC_inv_uc_cell = np.linalg.inv(self.STRC_uc_cell) 
+        STRC_Cell =  self.mySC.get_cell()      
         CPOS = self.mySC.get_positions()
         abc = self.my_atoms.cell.cellpar()[0:3]
         ABC = self.mySC.cell.cellpar()[0:3]
@@ -62,18 +101,28 @@ class Har_sc_maker():
         self.tot_SC_FCDIC = {}
         self.tot_mykeys = []
         self.loc_mykeys = []
+        Ucells_vecs_in_STRC = self.get_Uclls_in_STRC()        
         for prd1 in range(-int(xperiod), int(xperiod)+1):
             for prd2 in range(-int(yperiod), int(yperiod)+1):
                 for prd3 in range(-int(zperiod), int(zperiod)+1):
                     SC_cell = '{} {} {}'.format(prd1, prd2, prd3)
+
+                    per_dist = np.dot(np.array([prd1, prd2, prd3]), STRC_Cell)
+                    Per_cells = np.dot((1/0.98)*STRC_inv_uc_cell, per_dist)
+
                     for atm_i in range(self.SC_natom):
                         for atm_j in range(self.SC_natom):
-                            dist = (prd1*ABC[0]+CPOS[int(atm_j/UC_natm)*self.UC_natom][0]-CPOS[int(atm_i/UC_natm)*self.UC_natom][0],
-                                    prd2*ABC[1]+CPOS[int(atm_j/UC_natm)*self.UC_natom][1] -
-                                    CPOS[int(atm_i/UC_natm)*self.UC_natom][1],
-                                    prd3*ABC[2]+CPOS[int(atm_j/UC_natm)*self.UC_natom][2]-CPOS[int(atm_i/UC_natm)*self.UC_natom][2])
-                            cell_b = (int(
-                                dist[0]/(abc[0]*0.95)), int(dist[1]/(abc[1]*0.95)), int(dist[2]/(abc[2]*0.95)))
+
+                            cell_b = Ucells_vecs_in_STRC[atm_j,
+                                                         atm_i] + Per_cells
+                            cell_b = list(map(int, cell_b))
+                            
+                            # dist = (CPOS[int(atm_j/UC_natm)*self.UC_natom][0]-CPOS[int(atm_i/UC_natm)*self.UC_natom][0],
+                            #         CPOS[int(atm_j/UC_natm)*self.UC_natom][1]-CPOS[int(atm_i/UC_natm)*self.UC_natom][1],
+                            #         CPOS[int(atm_j/UC_natm)*self.UC_natom][2]-CPOS[int(atm_i/UC_natm)*self.UC_natom][2])
+                            
+                            # cell_b = np.dot((1/0.98)*STRC_inv_uc_cell, dist)+Per_cells
+                            
                             UC_key = '{}_{}_{}_{}_{}'.format(
                                 atm_i % UC_natm, atm_j % UC_natm, cell_b[0], cell_b[1], cell_b[2])
                             SC_key = '{}_{}_{}_{}_{}'.format(

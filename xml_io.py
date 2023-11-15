@@ -2,7 +2,6 @@ import numpy as np
 import xml.etree.ElementTree as ET
 from ase import Atoms
 from ase.units import Bohr
-from ase.data import atomic_masses
 import tools
 
 ###########################################################
@@ -175,7 +174,7 @@ class Xml_sys_reader:
             BEC.append(brn_tmp)
             tag_id.append([i, self.id])
             # tag.append(i)
-        atom_num = [get_atom_num(x) for x in amu]
+        atom_num = [tools.get_atom_num(x) for x in amu]
         self.ase_atoms = Atoms(numbers=atom_num, positions=np.array(
             car_pos), cell=Bohr*self.prim_vects, pbc=True)
         self.ase_atoms.set_array('BEC', np.array(BEC))
@@ -402,14 +401,6 @@ def xml_anha_reader(fname, atoms):
             lst_trm[cc][tt].append(
                 {'dips': disp_cnt, 'strain': strcnt, 'distance': dist})
     return(coeff, lst_trm)
-
-def get_atom_num(atomic_mass, tol=0.1):
-    if abs(atomic_mass-208) < 1:
-        tol = 0.001
-    for i in range(len(atomic_masses)):
-        if abs(atomic_masses[i]-atomic_mass) < tol:
-            mynum = i
-    return(mynum)
 
 def write_anh_xml(coeff,trms,fout):
     output = open(fout, 'w')
