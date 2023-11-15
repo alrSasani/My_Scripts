@@ -210,17 +210,10 @@ class Anh_sc_maker():
                 if abs(i) >= tol_04:
                     strain_flag.append(True)
                     temp_voits.append(ii+1)
-                    # if self.voigt_missfit is not None and ii+1 in self.voigt_missfit:
-                    #     stain_flag_inp.append(True)
                 else:
                     strain_flag.append(False)
-                    # if self.voigt_missfit is not None and ii+1 not in self.voigt_missfit:
-                    #     stain_flag_inp.append(False)                               
-            # if self.voigt_missfit is not None:
-            #     temp_voits = self.voigt_missfit
                 strain_flag = stain_flag_inp
                 
-            # print(f' The missfit strains material are in directions : ',10*'***',temp_voits, 'in direction ', stain_flag_inp)
             if any(strain_flag): 
                 myxml_clss.set_tags()
                 my_tags = myxml_clss.tags
@@ -345,24 +338,4 @@ class Anh_sc_maker():
  
 if __name__ == '__main__':
     pass
-    # xmlf = 'Har_xml_141414'
-    # dim = 3
-    # sys = xml_io.Xml_sys_reader(xmlf)
-    # sys.get_ase_atoms()
-    # atms = sys.ase_atoms
-    # scll = np.eye(3, dtype=int)*dim
-    # my_sc = make_supercell(atms, scll)
-    # # Xu_write_vasp('POSCAR_reorders',my_sc)
-    # t0 = time.perf_counter()
-    # #msc = my_sc_maker(xmlf,scll)
-    # #NEW_SCLL =read('POSCAR_reorders')
-    # # msc.reshape_FCDIC(NEW_SCLL)
-    # # msc.write_xml(f'tst_{dim}.xml')
-    # # te=time.perf_counter()
-    # #print('time old  =>  {}'.format(te-t0))
-    # anh_file = "AnHar_xml_141414"
-    # anxml = anh_scl(xmlf, anh_file)
-    # anxml.SC_trms(my_sc, scll)
-    # anxml.wrt_anxml(f'{dim}_anxml.xml')
-    # te = time.perf_counter()
-    # print('time old  =>  {}'.format(te-t0))
+
