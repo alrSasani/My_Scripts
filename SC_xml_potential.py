@@ -6,18 +6,19 @@ from ase.build import make_supercell,sort
 import xml_io
 import missfit_terms
 import  tools 
+import ase
 
 ###############################################################################
 
 class Har_sc_maker():
     def __init__(self, xml_file, SC_mat,strain_in=np.zeros((3,3)),neglect_tot_FC=False):
-        self.__Curnt_id = 0        
+        self.__Curnt_id = 0 
+        self.neglect_tot_FC = neglect_tot_FC  
+        self.has_SC_FCDIC = False
+        self.has_FIN_FCDIC = False             
         self.add_material(xml_file, SC_mat,strain_in)  
         self.mySC = make_supercell(self.my_atoms, self.SC_mat) 
         self.SC_natom = self.mySC.get_global_number_of_atoms()
-        self.has_SC_FCDIC = False
-        self.has_FIN_FCDIC = False
-        self.neglect_tot_FC = neglect_tot_FC
 
     def add_material(self, xml_file, SCMAT,strain_in):
         my_xml_obj = xml_io.Xml_sys_reader(xml_file, mat_id=str(
@@ -172,6 +173,8 @@ class Har_sc_maker():
 class Anh_sc_maker():
     def __init__(self, har_xml, anh_xml,strain_in=np.zeros((3,3)),missfit_strain=True,Higher_order_strain=False):
         self.xml = har_xml
+        self.myxml_clss = xml_io.Xml_sys_reader(self.xml)
+
         self.ahxml = anh_xml
         strain_vogt = missfit_terms.get_strain(strain=strain_in)
         self.missfit_strain = missfit_strain
@@ -182,145 +185,123 @@ class Anh_sc_maker():
         else:
             self.has_strain = False
             self.voigt_strain = [0,0,0,0,0,0]
-            
-    def SC_trms(self, MySC, SC_mat):
-        myxml_clss = xml_io.Xml_sys_reader(self.xml)
-        myxml_clss.get_ase_atoms()
-        
-        my_atoms = myxml_clss.ase_atoms
-        coeff, trms = xml_io.xml_anha_reader(self.ahxml, my_atoms)
-        self.SC_mat = SC_mat
-        mySC = MySC
-###########################        
+
+    def add_strain_terms(self,coeff, trms):
+        tol_04 = 10**-4
         total_coefs = len(coeff)
-        tol_04 = 0.0001
+        my_atoms = self.myxml_clss.ase_atoms
+        print(f'The strain for {my_atoms.get_chemical_formula()}  is ',self.voigt_strain)
+        temp_voits = []
+        strain_flag = []
+        stain_flag_inp = []
+        for ii,i in enumerate(self.voigt_strain):
+            if abs(i) >= tol_04:
+                strain_flag.append(True)
+                temp_voits.append(ii+1)
+            else:
+                strain_flag.append(False)
+            strain_flag = stain_flag_inp            
+        if any(strain_flag): 
+            self.myxml_clss.set_tags()
+            my_tags = self.myxml_clss.tags
+            new_coeffs, new_trms = missfit_terms.get_missfit_terms(
+                coeff, trms, my_tags, self.voigt_strain,  Higher_order_strain=self.Higher_order_strain,voigts=temp_voits)
+            for ntrm_cntr in range(len(new_coeffs)):
+                trms.append(new_trms[ntrm_cntr])
+                coeff[total_coefs+ntrm_cntr] = new_coeffs[ntrm_cntr]
+            print(f'number of Missfit Coeffiecinets for this  {my_atoms.get_chemical_formula()}  is {len(new_coeffs)}')
+            total_coefs = len(coeff)
+            self.myxml_clss.get_ela_cons()
+            new_coeffs, new_trms = missfit_terms.get_elas_missfit(self.myxml_clss.ela_cons,self.voigt_strain)
+            print(f'Creating elastic terms for missfit strain for  {my_atoms.get_chemical_formula()}  : # of terms is {len(new_coeffs)}')
+            for ntrm_cntr in range(len(new_coeffs)):
+                trms.append(new_trms[ntrm_cntr])
+                coeff[total_coefs+ntrm_cntr] = new_coeffs[ntrm_cntr]
+        return(coeff,trms)      
+
+    def SC_trms(self, mySC, SC_mat):
+        tol_04 = 0.0001        
+        self.myxml_clss.get_ase_atoms()        
+        my_atoms = self.myxml_clss.ase_atoms
+        coeff_0, trms_0 = xml_io.xml_anha_reader(self.ahxml, my_atoms)
+        self.SC_mat = SC_mat      
         if self.missfit_strain:
-            
-            print(f'The strain for {my_atoms.get_chemical_formula()}  is ',self.voigt_strain)
-            temp_voits = []
-            strain_flag = []
-            stain_flag_inp = []
-            for ii,i in enumerate(self.voigt_strain):
-                if abs(i) >= tol_04:
-                    strain_flag.append(True)
-                    temp_voits.append(ii+1)
-                else:
-                    strain_flag.append(False)
-                strain_flag = stain_flag_inp
-                
-            if any(strain_flag): 
-                myxml_clss.set_tags()
-                my_tags = myxml_clss.tags
-                new_coeffs, new_trms = missfit_terms.get_missfit_terms(
-                    coeff, trms, my_tags, self.voigt_strain,  Higher_order_strain=self.Higher_order_strain,voigts=temp_voits)
-                for ntrm_cntr in range(len(new_coeffs)):
-                    trms.append(new_trms[ntrm_cntr])
-                    coeff[total_coefs+ntrm_cntr] = new_coeffs[ntrm_cntr]
-                print(f'number of Missfit Coeffiecinets for this  {my_atoms.get_chemical_formula()}  is {len(new_coeffs)}')
-
-                total_coefs = len(coeff)
-                myxml_clss.get_ela_cons()
-                new_coeffs, new_trms = missfit_terms.get_elas_missfit(myxml_clss.ela_cons,self.voigt_strain)
-                print(f'Creating elastic terms for missfit strain for  {my_atoms.get_chemical_formula()}  : # of terms is {len(new_coeffs)}')
-                for ntrm_cntr in range(len(new_coeffs)):
-                    trms.append(new_trms[ntrm_cntr])
-                    coeff[total_coefs+ntrm_cntr] = new_coeffs[ntrm_cntr]
-
-####################################                        
-        CPOS = mySC.get_positions()
+            coeff, trms = self.add_strain_terms(coeff_0, trms_0)
+        else:
+            coeff, trms = coeff_0, trms_0                      
         ncell = np.linalg.det(self.SC_mat)        
-        # XPOS=mySC.get_scaled_positions()
-        ABC = mySC.cell.cellpar()[0:3]
         cPOS = my_atoms.get_positions()
-        abc = my_atoms.cell.cellpar()[0:3]
-        # myHa_SC=my_sc_maker(self.xml,self.SC_mat)
+        uc_cell = my_atoms.get_cell()
+        wrapPos = ase.geometry.wrap_positions
+        inv_STRC_cell = np.linalg.inv(mySC.get_cell())
+        STRC_cell = mySC.get_cell()
+        Xred_STRC = mySC.get_scaled_positions()
         my_terms = []
         for cc in range(len(coeff)):
             my_terms.append([])
             for tc in range(len(trms[cc])):
-                if 1:
-                    for prd1 in range((self.SC_mat[0][0])):
-                        for prd2 in range((self.SC_mat[1][1])):
-                            for prd3 in range((self.SC_mat[2][2])):
-                                # for prd1p in range(self.SC_mat[0][0]):
-                                # for prd2p in range(self.SC_mat[1][1]):
-                                # for prd3p in range(self.SC_mat[2][2]):
-                                my_term = []
-                                disp_cnt = 0
-                                for disp in range(int(trms[cc][tc][-1]['dips'])):
-                                    atm_a = int(trms[cc][tc][disp]['atom_a'])
-                                    atm_b = int(trms[cc][tc][disp]['atom_b'])
-                                    cell_a0 = [
-                                        int(x) for x in trms[cc][tc][disp]['cell_a'].split()]
-                                    cell_b0 = [
-                                        int(x) for x in trms[cc][tc][disp]['cell_b'].split()]
-                                    catm_a0 = cell_a0[0]*abc[0]+cPOS[atm_a][0], cell_a0[1] * \
-                                        abc[1]+cPOS[atm_a][1], cell_a0[2] * \
-                                        abc[2]+cPOS[atm_a][2]
-                                    catm_b0 = cell_b0[0]*abc[0]+cPOS[atm_b][0], cell_b0[1] * \
-                                        abc[1]+cPOS[atm_b][1], cell_b0[2] * \
-                                        abc[2]+cPOS[atm_b][2]
-                                    #dst0 = distance.euclidean(catm_a0, catm_b0)
-                                    dst0 = [catm_a0[0]-catm_b0[0], catm_a0[1] -
-                                            catm_b0[1], catm_a0[2]-catm_b0[2]]
-                                    catm_an = prd1 * \
-                                        abc[0]+catm_a0[0], prd2*abc[1] + \
-                                        catm_a0[1], prd3*abc[2]+catm_a0[2]
-                                    catm_bn = prd1 * \
-                                        abc[0]+catm_b0[0], prd2*abc[1] + \
-                                        catm_b0[1], prd3*abc[2]+catm_b0[2]
-                                    ind_an = tools.find_index(CPOS, catm_an)
-                                    ind_bn = tools.find_index(CPOS, catm_bn)
-                                    #dst = distance.euclidean(catm_an, catm_bn)
-                                    dst = [catm_an[0]-catm_bn[0], catm_an[1] -
-                                           catm_bn[1], catm_an[2]-catm_bn[2]]
+                for prd1 in range((self.SC_mat[0][0])):
+                    for prd2 in range((self.SC_mat[1][1])):
+                        for prd3 in range((self.SC_mat[2][2])):
+                            my_term = []
+                            disp_cnt = 0
+                            prd_dis = np.dot(uc_cell, [prd1, prd2, prd3])
+                            for disp in range(int(trms[cc][tc][-1]['dips'])):
+                                atm_a = int(trms[cc][tc][disp]['atom_a'])
+                                atm_b = int(trms[cc][tc][disp]['atom_b'])
+                                cell_a0 = [int(x) for x in trms[cc][tc][disp]['cell_a'].split()]
+                                cell_b0 = [int(x) for x in trms[cc][tc][disp]['cell_b'].split()]
+                                                               
+                                catm_a0 = np.dot(uc_cell, cell_a0)+cPOS[atm_a]
+                                catm_b0 = np.dot(uc_cell, cell_b0)+cPOS[atm_b]
+                                dst0 = catm_a0-catm_b0
 
-                                    dif_ds = np.zeros((3))
+                                catm_an = prd_dis + catm_a0
+                                catm_bn = prd_dis + catm_b0
+                                red_an = np.dot(inv_STRC_cell, catm_an)
+                                red_bn = np.dot(inv_STRC_cell, catm_bn)
+                                ind_an = tools.find_index_xred(Xred_STRC, red_an)
+                                ind_bn = tools.find_index_xred(Xred_STRC, red_bn)
 
-                                    # dif_ds=[abs(dst[i]-dst0[i] for i in range(3)]
-                                    for i in range(3):
-                                        dif_ds[i] = abs(dst[i]-dst0[i])
-                                    if (ind_an != -1) and all(dif_ds < 0.001):
-                                        if ind_bn == -1:
-                                            #cell_b='{} {} {}'.format(cell_b0[0],cell_b0[1],cell_b0[2])
-                                            # disp_pos=catm_bn[0]-(cell_b0[0])*ABC[0],catm_bn[1]-(cell_b0[1])*ABC[1],catm_bn[2]-(cell_b0[2])*ABC[2]
-                                            red_pos = catm_bn[0]/ABC[0], catm_bn[1]/ABC[1], catm_bn[2]/ABC[2]
-                                            tmp_par = np.zeros((3))
-                                            for i, ii in enumerate(red_pos):
-                                                if ii < 0:
-                                                    tmp_par[i] = 1
-     
-                                            cell_b = '{} {} {}'.format(int(int(red_pos[0])-tmp_par[0]), int(
-                                                int(red_pos[1])-tmp_par[1]), int(int(red_pos[2])-tmp_par[2]))
-                                            
-                                            disp_pos = (red_pos[0]-(int(red_pos[0])-tmp_par[0]))*ABC[0], (red_pos[1]-(int(
-                                                red_pos[1])-tmp_par[1]))*ABC[1], (red_pos[2]-(int(red_pos[2])-tmp_par[2]))*ABC[2]
-                                            
-                                            ind_bn = tools.find_index(CPOS, disp_pos)
-                                        else:
-                                            cell_b = '0 0 0'
-                                        new_dis = {'atom_a': ind_an, 'cell_a': '0 0 0', 'atom_b': ind_bn, 'cell_b': cell_b, 'direction': trms[cc][
-                                            tc][disp]['direction'], 'power': trms[cc][tc][disp]['power'], 'weight': trms[cc][tc][disp]['weight']}
-                                        my_term.append(new_dis)
-                                    disp_cnt += 1
-                                if (int(trms[cc][tc][-1]['dips']) == 0 or (disp_cnt == int(trms[cc][tc][-1]['dips']) and (len(my_term) != 0))):
-                                    tmp_d = 0
-                                    if disp_cnt == 0:
-                                        tmp_d = 1
+                                if ind_an == -1:
+                                    wrp_a = wrapPos([catm_an], STRC_cell)[0]
+                                    red_ann = np.dot(inv_STRC_cell, wrp_a)
+                                    ind_an = tools.find_index_xred(
+                                        Xred_STRC, red_ann)
+                                if ind_bn == -1:
+                                    wrp_b = wrapPos([catm_bn], STRC_cell)[0]
+                                    red_bnn = np.dot(inv_STRC_cell, wrp_b)
+                                    ind_bn = tools.find_index_xred(
+                                        Xred_STRC, red_bnn)
 
-                                    for str_cnt in range(int(trms[cc][tc][-1]['strain'])):
-                                        my_term.append(
-                                            {'power': trms[cc][tc][disp_cnt+tmp_d+str_cnt]['power'], 'voigt': trms[cc][tc][disp_cnt+tmp_d+str_cnt]['voigt']})
+                                cell_a = red_an-Xred_STRC[ind_an]
+                                cell_b = list(map(int, red_bn-Xred_STRC[ind_bn]-np.array(cell_a)))                                    
+                                cell_b_Str = f'{cell_b[0]} {cell_b[1]} {cell_b[2]}'
+                                dst = catm_an-catm_bn #[catm_an[i]-catm_bn[i] for i in range(3)]
+                                dif_ds = [False if (abs(dst[i]-dst0[i]) > tol_04) else True for i in range(3)]
+                                if (ind_an != -1) and all(dif_ds):
+                                    new_dis = {'atom_a': ind_an, 'cell_a': '0 0 0', 'atom_b': ind_bn, 'cell_b': cell_b_Str, 'direction': trms[cc][
+                                        tc][disp]['direction'], 'power': trms[cc][tc][disp]['power'], 'weight': trms[cc][tc][disp]['weight']}
+                                    my_term.append(new_dis)
+                                disp_cnt += 1
+                            if (int(trms[cc][tc][-1]['dips']) == 0 or (disp_cnt == int(trms[cc][tc][-1]['dips']) and (len(my_term) != 0))):
+                                tmp_d = 0
+                                if disp_cnt == 0:
+                                    tmp_d = 1
 
-                                if len(my_term) == int(trms[cc][tc][-1]['dips'])+int(trms[cc][tc][-1]['strain']):
+                                for str_cnt in range(int(trms[cc][tc][-1]['strain'])):
+                                    my_term.append(
+                                        {'power': trms[cc][tc][disp_cnt+tmp_d+str_cnt]['power'], 'voigt': trms[cc][tc][disp_cnt+tmp_d+str_cnt]['voigt']})
 
-                                    if (int(trms[cc][tc][-1]['dips']) == 0 and int(trms[cc][tc][-1]['strain']) != 0):
-                                        my_term.append(
-                                            {'weight': trms[cc][tc][0]['weight']})
+                            if len(my_term) == int(trms[cc][tc][-1]['dips'])+int(trms[cc][tc][-1]['strain']):
 
-                                    my_term.append(trms[cc][tc][-1])
-                                    if my_term not in (my_terms[cc]):
-                                        my_terms[cc].append(my_term)
+                                if (int(trms[cc][tc][-1]['dips']) == 0 and int(trms[cc][tc][-1]['strain']) != 0):
+                                    my_term.append(
+                                        {'weight': trms[cc][tc][0]['weight']})
+
+                                my_term.append(trms[cc][tc][-1])
+                                if my_term not in (my_terms[cc]):
+                                    my_terms[cc].append(my_term)
 
             if len(trms[cc])>=1:
                 if (int(trms[cc][0][-1]['dips']) == 0) and (int(trms[cc][0][-1]['strain'])!=0):

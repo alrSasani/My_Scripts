@@ -1,26 +1,24 @@
 from itertools import permutations
 import spglib as spg
-import SC_xml_potential
+# import SC_xml_potential
 import numpy as np
-import os
-import xml.etree.ElementTree as ET
+# import os
+# import xml.etree.ElementTree as ET
 from math import ceil
 import ase
 from ase import Atoms
 from ase.units import Bohr
 #from ase.data import atomic_numbers, atomic_masses
-from ase.build import make_supercell
+# from ase.build import make_supercell
 from ase.io import write
-from phonopy.units import AbinitToTHz
+# from phonopy.units import AbinitToTHz
 #from my_functions import *
-import my_functions
-thz_cm = 33.356/1.374673102
-import copy
+# import my_functions
+# thz_cm = 33.356/1.374673102
+# import copy
 from ase.build import stack
 import xml_io  # xml_io.xml_anha_reader
 import tools
-
-###########################################################
 
 ###########################################################
 
@@ -555,10 +553,8 @@ class Anh_intrface(Har_interface):
         tot_scmat = self.SCMATS[id_in].copy()
         tot_scmat[2,2] += self.SCMATS[id_pars[id_in]][2, 2]
         ncell = np.linalg.det(tot_scmat)
-
         wrapPos = ase.geometry.wrap_positions
         my_terms = []
-
         if self.NW_Strc:
             SCMATS_temp = np.zeros((3,3),dtype=int)
             for idir in range(3):
@@ -566,14 +562,11 @@ class Anh_intrface(Har_interface):
 
             prop_l1l2 = np.linalg.det(self.SCMATS[id_in])/(np.linalg.det(self.SCMATS[id_in])+np.linalg.det(self.SCMATS[id_pars[id_in]])) 
             zdirec1 = range(2*SCMATS_temp[2, 2])
-
-
         else:
             SCMATS_temp = self.SCMATS[id_in]
             zdirec1 = range((self.SCMATS[id_in][2, 2]) +
                         (self.SCMATS[id_pars[id_in]][2, 2]))  
             prop_l1l2 = self.SCMATS[id_in][2][2]/(self.SCMATS[id_in][2][2]+self.SCMATS[id_pars[id_in]][2][2])                                  
-
         tmp_coeffs = {}
         for cc in range(len(coeff)):
             tmp_coeffs[cc] = coeff[cc]
@@ -615,8 +608,8 @@ class Anh_intrface(Har_interface):
                                 cell_a = red_an-Xred_STRC[ind_an]
                                 cell_b = list(
                                     map(int, red_bn-Xred_STRC[ind_bn]-np.array(cell_a)))
-                                tag_an, id_an = tag_id[ind_an]
-                                dst = [catm_an[i]-catm_bn[i] for i in range(3)]
+                                # tag_an, id_an = tag_id[ind_an]
+                                dst = catm_an-catm_bn #[catm_an[i]-catm_bn[i] for i in range(3)]
                                 dif_ds = [
                                     False if (abs(dst[i]-dst0[i]) > tol_04) else True for i in range(3)]
                                 if all(dif_ds):
@@ -841,10 +834,7 @@ class Anh_intrface(Har_interface):
         total_tems = []
         coef_cntr = 1
         str_cntr = 0
-        for i in range(len(coeff1)):
-            # print(20*'-----')
-            # print(coeff1[i])
-            # print(len(trms1[i]))                   
+        for i in range(len(coeff1)):               
             if trms1[i][0][-1]['dips'] != 0 :
                 total_coeffs[coef_cntr] = coeff1[i]
                 total_tems.append(trms1[i])
@@ -853,7 +843,6 @@ class Anh_intrface(Har_interface):
                 str_coeff[str_cntr] = coeff1[i]
                 str_terms.append(trms1[i])
                 str_cntr += 1                 
-        # print('coeffs anf terms lengst are :',len(coeff2),'  and ',len(trms2))
         for i in range(len(coeff2)):
             if trms2[i][0][-1]['dips'] != 0 :
                 total_coeffs[coef_cntr] = coeff2[i]
@@ -870,7 +859,6 @@ class Anh_intrface(Har_interface):
             coef_cntr +=1 
 
         xml_io.write_anh_xml(total_coeffs,total_tems,fout)
-
 
 ###########################################################
 if __name__ == '__main__':

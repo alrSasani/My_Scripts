@@ -264,7 +264,6 @@ def sng_domain(atom,dim=[1,1,1],atm_to_move={'Ti':[0,0,0.02]}):
 
      return(new_SC)
 
-
 def find_tag_index(tags, tag):
     for i, ii in enumerate(tags):
         if tag[0] == ii[0] and tag[1] == ii[1]:
