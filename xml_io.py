@@ -9,7 +9,7 @@ import tools
 class Xml_sys_reader:
     ''' Harmonic xml reader:
     This class is used to reas harmonic xml file  and return the data needed for construction of the SL'''
-    def __init__(self, xml_file, mat_id='', extract_dta=False):
+    def __init__(self, xml_file, mat_id='0', extract_dta=False):
         self.id = mat_id
         tree = ET.parse(xml_file)
         self.root = tree.getroot()
@@ -23,6 +23,10 @@ class Xml_sys_reader:
             self.get_loc_FC_tags()
             self.get_tot_FC_tags()
             self.set_tags()
+            self.get_tot_cells()
+            self.get_loc_cells()
+            self.get_tot_Per_clls()
+            self.get_Per_clls()
 
     # atomic mass and Positions        >>>>>>>>             self.atm_pos          self.natm
     def get_atoms(self):

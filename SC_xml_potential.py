@@ -10,73 +10,36 @@ import  tools
 ###############################################################################
 
 class Har_sc_maker():
-    def __init__(self, xml_file, SC_mat,strain_in=np.zeros((3,3))):
-        self.xml = xml_io.Xml_sys_reader(xml_file)
-        self.xml.get_ase_atoms()
-        self.my_atoms = self.xml.ase_atoms
-        self.SC_mat = SC_mat
-        self.STRC_uc_cell = self.my_atoms.get_cell()
-        self.set_SC(self.my_atoms,strain=strain_in)
-        # self.mySC = make_supercell(self.my_atoms, self.SC_mat)
+    def __init__(self, xml_file, SC_mat,strain_in=np.zeros((3,3)),neglect_tot_FC=False):
+        self.__Curnt_id = 0        
+        self.add_material(xml_file, SC_mat,strain_in)  
+        self.mySC = make_supercell(self.my_atoms, self.SC_mat) 
         self.SC_natom = self.mySC.get_global_number_of_atoms()
         self.has_SC_FCDIC = False
         self.has_FIN_FCDIC = False
-        self.xml.get_loc_FC_dic()
-        self.xml.get_tot_FC_dic()
-        self.xml.get_Per_clls()
-        self.has_tot_FC = self.xml.has_tot_FC
-        self.tot_FC_dic = self.xml.tot_FC_dic
-        self.loc_FC_dic = self.xml.loc_FC_dic
-        self.xml.get_atoms()
-        # self.atm_pos = self.xml.atm_pos
+        self.neglect_tot_FC = neglect_tot_FC
 
-    def set_SC(self, tmp_atoms,strain=np.zeros((3,3))):
-        mySC = make_supercell(tmp_atoms, self.SC_mat)
-        cell = mySC.get_cell()+np.dot(strain,mySC.get_cell())
-        self.mySC = Atoms(numbers= mySC.get_atomic_numbers(),scaled_positions=mySC.get_scaled_positions(),cell = cell)        
-        self.mySC .set_array(
-            'BEC', mySC.get_array('BEC'))
-        self.mySC .set_array(
-            'tag_id', mySC.get_array('tag_id'))
-        self.mySC .set_array(
-            'str_ph', mySC.get_array('str_ph'))
+    def add_material(self, xml_file, SCMAT,strain_in):
+        my_xml_obj = xml_io.Xml_sys_reader(xml_file, mat_id=str(
+            self.__Curnt_id), extract_dta=True)        
+        self.SC_mat = np.array(SCMAT)
+        self.xml = my_xml_obj
 
-    # def find_tag_index(self, tags, tag):
-    #     for i, ii in enumerate(tags):
-    #         if tag[0] == ii[0] and tag[1] == ii[1]:
-    #             return(i)
-
-    # def get_atm_ij_diff_in_UC(self):
-    #     STRC = self.mySC
-    #     natom = len(STRC)
-    #     STRC_uc_cell = self.STRC_uc_cell
-    #     tag_id = STRC.get_array('tag_id')
-    #     indx_tag = []
-    #     for i in range(natom):
-    #         indx_tag.append(self.find_tag_index(
-    #             self.my_atoms.get_array('tag_id'), tag_id[i]))
-    #     atm_ij_diff_in_mat = np.zeros((natom, natom, 3))
-    #     for i in range(natom):
-    #         for j in range(natom):
-    #             atm_ij_diff_in_mat[j, i] = np.dot(STRC_uc_cell, (self.my_atoms.get_scaled_positions()[
-    #                                               indx_tag[i]]-self.my_atoms.get_scaled_positions()[indx_tag[j]]))
-    #     return(atm_ij_diff_in_mat)
-
-    # def get_Uclls_in_STRC(self):
-    #     STRC = self.mySC
-    #     natom = len(STRC)
-    #     STR_POSs = STRC.get_positions()
-    #     atm_ij_diff_in_mat = self.get_atm_ij_diff_in_UC()
-    #     STRC_inv_uc_cell = np.linalg.inv(self.STRC_uc_cell)
-    #     cells_vecs = np.zeros((natom, natom, 3))
-    #     for atm_i in range(natom):
-    #         for atm_j in range(natom):
-    #             dists = STR_POSs[atm_i]-STR_POSs[atm_j] - \
-    #                 atm_ij_diff_in_mat[atm_j, atm_i]
-    #             cells_vecs[atm_i, atm_j, :] = np.dot(
-    #                 (1/0.98)*STRC_inv_uc_cell, dists)
-    #     return(cells_vecs)
-
+        temp_atoms = my_xml_obj.ase_atoms
+        cell = np.dot((np.eye(3)+strain_in),temp_atoms.get_cell())
+        self.my_atoms = Atoms(numbers= temp_atoms.get_atomic_numbers(),scaled_positions=temp_atoms.get_scaled_positions(),cell = cell)  
+        self.my_atoms.set_array(
+            'BEC', temp_atoms.get_array('BEC'))
+        self.my_atoms.set_array(
+            'tag_id', temp_atoms.get_array('tag_id'))
+        self.my_atoms.set_array(
+            'str_ph', temp_atoms.get_array('str_ph'))
+        
+        self.STRC_uc_cell = self.my_atoms.get_cell()
+        self.loc_FC_dic = my_xml_obj.loc_FC_tgs
+        self.tot_FC_dic = my_xml_obj.tot_FC_tgs
+        self.has_tot_FC = my_xml_obj.has_tot_FC*(not self.neglect_tot_FC)
+                  
     def get_period_cells(self):
         ncll_loc = self.xml.ncll
         if self.has_tot_FC:
@@ -100,29 +63,28 @@ class Har_sc_maker():
         self.tot_SC_FCDIC = {}
         self.tot_mykeys = []
         self.loc_mykeys = []
-        Ucells_vecs_in_STRC = tools.get_Uclls_in_STRC()        
+        tmp_atm = {'0':self.my_atoms}
+        Ucells_vecs_in_STRC = tools.get_Uclls_in_STRC(self.mySC,tmp_atm)        
         for prd1 in range(-int(xperiod), int(xperiod)+1):
             for prd2 in range(-int(yperiod), int(yperiod)+1):
                 for prd3 in range(-int(zperiod), int(zperiod)+1):
-                    SC_cell = '{} {} {}'.format(prd1, prd2, prd3)
+                    SC_cell = f'{prd1} {prd2} {prd3}'  #.format(prd1, prd2, prd3)
                     per_dist = np.dot(np.array([prd1, prd2, prd3]), STRC_Cell)
                     Per_cells = np.dot((1/0.98)*STRC_inv_uc_cell, per_dist)
                     for atm_i in range(self.SC_natom):
                         tag_i = tag_id[atm_i][0]
+                        id_i = tag_id[atm_i][1]
                         for atm_j in range(self.SC_natom):
                             tag_j = tag_id[atm_j][0]
+                            id_j = tag_id[atm_j][1]
                             cell_b = Ucells_vecs_in_STRC[atm_j,atm_i] + Per_cells
-                            cell_b = list(map(int, cell_b))                                                     
-                            UC_key = '{}_{}_{}_{}_{}'.format(
-                                tag_i, tag_j, cell_b[0], cell_b[1], cell_b[2])
-                            SC_key = '{}_{}_{}_{}_{}'.format(
-                                atm_i, atm_j, prd1, prd2, prd3)
-
+                            cell_b = list(map(int, cell_b))  
+                            UC_key = f'{id_i}{tag_i}_{id_j}{tag_j}_{cell_b[0]}_{cell_b[1]}_{cell_b[2]}'  
+                            SC_key = f'{atm_i}_{atm_j}_{prd1}_{prd2}_{prd3}'
                             if UC_key in self.loc_FC_dic.keys():
                                 self.loc_SC_FCDIC[SC_key] = self.loc_FC_dic[UC_key]
                                 if SC_cell not in (self.loc_mykeys):
                                     self.loc_mykeys.append(SC_cell)
-
                             if self.has_tot_FC and UC_key in self.tot_FC_dic.keys():
                                 self.tot_SC_FCDIC[SC_key] = self.tot_FC_dic[UC_key]
                                 if SC_cell not in (self.tot_mykeys):
@@ -155,8 +117,7 @@ class Har_sc_maker():
             for atm_a in my_atm_list:
                 cnt_b = 0
                 for atm_b in my_atm_list:
-                    my_index = '{}_{}_{}_{}_{}'.format(
-                        atm_a, atm_b, my_cell[0], my_cell[1], my_cell[2])
+                    my_index = f'{atm_a}_{atm_b}_{my_cell[0]}_{my_cell[1]}_{my_cell[2]}'
                     if my_index in self.loc_SC_FCDIC.keys():
                         loc_key_found = True
                         tmp_loc_FC[cnt_a*3:cnt_a*3+3, cnt_b *
@@ -179,23 +140,16 @@ class Har_sc_maker():
         xml_dta = {}
         if not self.has_FIN_FCDIC:
             self.reshape_FCDIC()
-        self.xml.get_str_cp()
-        self.xml.get_eps_inf()
-        self.xml.get_ela_cons()
-        self.xml.get_ref_energy()
         SC_FC = self.Fin_loc_FC
-        # self.get_SC_BEC()
         self.xml.get_tot_forces()
+        xml_dta['has_tot_FC'] = self.has_tot_FC 
         if self.has_tot_FC:
             keys = self.Fin_tot_FC.keys()
-            xml_dta['SC_total_FC'] = self.Fin_tot_FC
-            xml_dta['has_tot_FC'] = self.has_tot_FC            
+            xml_dta['SC_total_FC'] = self.Fin_tot_FC                      
         else:
-            xml_dta['has_tot_FC'] = self.has_tot_FC 
             keys = SC_FC.keys()
-        # self.get_SC_corr_forc()
-        SCL_elas = ((self.xml.ela_cons)*SC_num_Uclls)
 
+        SCL_elas = ((self.xml.ela_cons)*SC_num_Uclls)
         xml_dta['keys'] = keys
         xml_dta['SCL_elas'] = SCL_elas
         xml_dta['SCL_ref_energy'] = SC_num_Uclls*self.xml.ref_eng
@@ -330,16 +284,18 @@ class Anh_sc_maker():
                                         if ind_bn == -1:
                                             #cell_b='{} {} {}'.format(cell_b0[0],cell_b0[1],cell_b0[2])
                                             # disp_pos=catm_bn[0]-(cell_b0[0])*ABC[0],catm_bn[1]-(cell_b0[1])*ABC[1],catm_bn[2]-(cell_b0[2])*ABC[2]
-                                            red_pos = catm_bn[0]/ABC[0], catm_bn[1] / \
-                                                ABC[1], catm_bn[2]/ABC[2]
+                                            red_pos = catm_bn[0]/ABC[0], catm_bn[1]/ABC[1], catm_bn[2]/ABC[2]
                                             tmp_par = np.zeros((3))
                                             for i, ii in enumerate(red_pos):
                                                 if ii < 0:
                                                     tmp_par[i] = 1
+     
                                             cell_b = '{} {} {}'.format(int(int(red_pos[0])-tmp_par[0]), int(
                                                 int(red_pos[1])-tmp_par[1]), int(int(red_pos[2])-tmp_par[2]))
+                                            
                                             disp_pos = (red_pos[0]-(int(red_pos[0])-tmp_par[0]))*ABC[0], (red_pos[1]-(int(
                                                 red_pos[1])-tmp_par[1]))*ABC[1], (red_pos[2]-(int(red_pos[2])-tmp_par[2]))*ABC[2]
+                                            
                                             ind_bn = tools.find_index(CPOS, disp_pos)
                                         else:
                                             cell_b = '0 0 0'

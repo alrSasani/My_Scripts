@@ -102,27 +102,6 @@ class Har_interface:
         return(np.array([[minxl, maxxl], [minyl, maxyl], [minzl, maxzl]]))
         ###############################
 
-    def find_tag_index(self, tags, tag):
-        for i, ii in enumerate(tags):
-            if tag[0] == ii[0] and tag[1] == ii[1]:
-                return(i)
-
-    def get_atm_ij_diff_in_UC(self):
-        STRC = self.STRC
-        natom = len(STRC)
-        STRC_uc_cell = self.STRC_uc_cell
-        tag_id = STRC.get_array('tag_id')
-        indx_tag = []
-        for i in range(natom):
-            indx_tag.append(self.find_tag_index(
-                self.uc_atoms[tag_id[i][1]].get_array('tag_id'), tag_id[i]))
-        atm_ij_diff_in_mat = np.zeros((natom, natom, 3))
-        for i in range(natom):
-            for j in range(natom):
-                atm_ij_diff_in_mat[j, i] = np.dot(STRC_uc_cell, (self.uc_atoms[tag_id[i][1]].get_scaled_positions()[
-                                                  indx_tag[i]]-self.uc_atoms[tag_id[j][1]].get_scaled_positions()[indx_tag[j]]))
-        return(atm_ij_diff_in_mat)
-
     def get_match_pairs(self):  
         self.maped_strs = {}
         self.maped_strs['0'] = tools.get_mapped_strcs(
@@ -207,21 +186,6 @@ class Har_interface:
             tmp_has_tot_FC = True
         return(temp_loc1, temp_tot1, [loc_found, tmp_has_tot_FC])
 
-    def get_Uclls_in_STRC(self):
-        STRC = self.STRC
-        natom = len(STRC)
-        STR_POSs = STRC.get_positions()
-        atm_ij_diff_in_mat = self.get_atm_ij_diff_in_UC()
-        STRC_inv_uc_cell = np.linalg.inv(self.STRC_uc_cell)
-        cells_vecs = np.zeros((natom, natom, 3))
-        for atm_i in range(natom):
-            for atm_j in range(natom):
-                dists = STR_POSs[atm_i]-STR_POSs[atm_j] - \
-                    atm_ij_diff_in_mat[atm_j, atm_i]
-                cells_vecs[atm_i, atm_j, :] = np.dot(
-                    (1/0.98)*STRC_inv_uc_cell, dists)
-        return(cells_vecs)
-
     def get_STR_FCDIC(self):
         id_pars = {'0': '1', '1': '0'}
         self.get_match_pairs()
@@ -233,11 +197,10 @@ class Har_interface:
         STRC_Cell = STRC.get_cell()
         if not self.has_weight:
             req_elemtsns = self.diff_elements
-            # = self.diff_elements  # FIXME CHANGE IT WITH PROPER MATRIX
             self.get_FC_weight(req_symbs=req_elemtsns)
         FC_weights = self.FC_weights
         tag_id = STRC.get_array('tag_id')
-        Ucells_vecs_in_STRC = self.get_Uclls_in_STRC()
+        Ucells_vecs_in_STRC = tools.get_Uclls_in_STRC(STRC,self.uc_atoms,STRC_uc_cell_in=self.STRC_uc_cell)
         for prd1 in range(Cells[0, 0]-1, Cells[0, 1]+1):
             for prd2 in range(Cells[1, 0]-1, Cells[1, 1]+1):
                 for prd3 in range(Cells[2, 0]-1, Cells[2, 1]+1):

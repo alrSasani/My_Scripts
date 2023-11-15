@@ -270,28 +270,32 @@ def find_tag_index(tags, tag):
         if tag[0] == ii[0] and tag[1] == ii[1]:
             return(i)
 
-def get_atm_ij_diff_in_UC(STRC,uc_strc):
+def get_atm_ij_diff_in_UC(STRC,uc_strcs,STRC_uc_cell):
     # STRC = self.mySC
     natom = len(STRC)
-    STRC_uc_cell = uc_strc.get_cell()
+    # STRC_uc_cell = uc_strc.get_cell()
     tag_id = STRC.get_array('tag_id')
     indx_tag = []
     for i in range(natom):
         indx_tag.append(find_tag_index(
-            uc_strc.get_array('tag_id'), tag_id[i]))
+            uc_strcs[tag_id[i][1]].get_array('tag_id'), tag_id[i]))
+                    
     atm_ij_diff_in_mat = np.zeros((natom, natom, 3))
     for i in range(natom):
         for j in range(natom):
-            atm_ij_diff_in_mat[j, i] = np.dot(STRC_uc_cell, (uc_strc.get_scaled_positions()[
-                                                indx_tag[i]]-uc_strc.get_scaled_positions()[indx_tag[j]]))
+            atm_ij_diff_in_mat[j, i] = np.dot(STRC_uc_cell, (uc_strcs[tag_id[i][1]].get_scaled_positions()[
+                                                indx_tag[i]]-uc_strcs[tag_id[j][1]].get_scaled_positions()[indx_tag[j]]))            
     return(atm_ij_diff_in_mat)
 
-def get_Uclls_in_STRC(STRC,uc_strc):
+def get_Uclls_in_STRC(STRC,uc_strcs,STRC_uc_cell_in=None):
     # STRC = self.mySC
-    STRC_uc_cell = uc_strc.get_cell()
+    if STRC_uc_cell_in is not None:
+        STRC_uc_cell = STRC_uc_cell_in
+    else:
+        STRC_uc_cell = uc_strcs['0'].get_cell()
     natom = len(STRC)
     STR_POSs = STRC.get_positions()
-    atm_ij_diff_in_mat = get_atm_ij_diff_in_UC(STRC,uc_strc)
+    atm_ij_diff_in_mat = get_atm_ij_diff_in_UC(STRC,uc_strcs,STRC_uc_cell)
     STRC_inv_uc_cell = np.linalg.inv(STRC_uc_cell)
     cells_vecs = np.zeros((natom, natom, 3))
     for atm_i in range(natom):
