@@ -77,6 +77,25 @@ def mapping(str_to_be_map, str_to_map_to,Ret_index=True):
    ), scaled_positions=xred_maped, cell=str_to_be_map.get_cell())
    return(maped_str)
 
+def map_ordered_strctures(str_1,str_2,tol=0.5):  # the ordering is correct
+    red_1 = str_1.get_scaled_positions()
+    red_2 = str_2.get_scaled_positions()
+    tmp_red1 = np.zeros((len(red_1),3))
+    for i in range(len(red_1)):
+        for j in range(3):
+            diff = red_1[i,j]-red_2[i,j]
+            if abs(diff) > tol:
+                if diff>0:
+                #    print('Here  1')
+                   tmp_red1[i,j] = red_1[i,j]-1
+                elif diff<0:
+                #    print('Here  2')
+                   tmp_red1[i,j] = 1+red_1[i,j]
+            else:
+               tmp_red1[i,j] = red_1[i,j]
+    Nstr_1 = Atoms(numbers=str_1.get_atomic_numbers(), scaled_positions=tmp_red1, cell=str_1.get_cell())
+    return(Nstr_1)
+
 def get_mapped_strcs(str_to_be_map, str_to_map_to, Ret_index=False):
     natom = len(str_to_map_to.get_scaled_positions())
     natom2 = len(str_to_be_map.get_scaled_positions())
