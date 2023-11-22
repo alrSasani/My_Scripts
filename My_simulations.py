@@ -246,7 +246,7 @@ def get_number_SG(sg):
     return(wrds[1][1:-1])
 
 
-def relax_NC_Str(path0, har_xml, Anhar_coeffs, nc_file, EXEC='MB_Mar20', ngqpt=[8, 8, 8], ncell=[2, 2, 2], NCPU=8, Files_prefix='BTO', opt_cell=[2], step=-1):
+def relax_NC_Str(path0, har_xml, Anhar_coeffs, nc_file, EXEC='MB_16Jun', ngqpt=[8, 8, 8], ncell=[2, 2, 2], NCPU=8, Files_prefix='BTO', opt_cell=[2], step=-1):
     strc = mync.get_NC_str(nc_file, stp=step)
     my_sim = MB_sim(EXEC, har_xml, Anhar_coeffs=Anhar_coeffs, ngqpt=ngqpt,
                     ncell=ncell, ncpu=NCPU, test_set='no', prefix=Files_prefix)
@@ -262,3 +262,54 @@ def relax_NC_Str(path0, har_xml, Anhar_coeffs, nc_file, EXEC='MB_Mar20', ngqpt=[
         my_sim.write_hist()
         my_sim.write_run_data()
         os.system(f'sh MB_run.sh')
+
+def get_xml_files(DDB,modle1,ngqpt,ncell=[1,1,1],prt_dipdip=1,output_name='Str',sim_path='./',Har_name='Harfile',Anh_name='Modelfile',EXEC='MB_16Jun',NCPU=1):
+    my_sim1 = MB_sim(EXEC, DDB, Anhar_coeffs=modle1, ngqpt=ngqpt, ncell=ncell, ncpu=NCPU, test_set='no',prefix = output_name)
+    my_sim1.inpt_file_xml(prt_dipdip=prt_dipdip)
+    sim_path = sim_path
+    os.makedirs(sim_path,exist_ok=True)
+    os.chdir(sim_path)
+    my_sim1.write_run_data()   
+    os.system(f'sh MB_run.sh')
+    os.system(f'mv *_sys.xml {Har_name}')
+    os.system(f'mv *_coeffs.xml {Anh_name}')
+    har_xml1 = f'{sim_path}/{Har_name}'
+    anh_xml1 = f'{sim_path}/{Anh_name}' 
+    return(har_xml1,anh_xml1)   
+
+def relax_NC_strc(Har_fle,Anh_fle,rlx_opt=2,dipdip=1,NC_FILE=None,NC_Step=-1,avg_nc_str=False,ngqpt=[2,2,2],ncell=[1,1,1],prefix='Strc',EXEC='MB_16Jun',NCPU=1,sim_path='./'):
+    my_sim_rlx = MB_sim(EXEC, Har_fle, Anhar_coeffs=Anh_fle, ngqpt=ngqpt, ncell= ncell, ncpu=NCPU, test_set='no',prefix = prefix)
+    my_sim_rlx.rlx_dta()
+    os.makedirs(sim_path,exist_ok=True)
+    print('Simulation path for relaxing is: \n',sim_path)
+    os.chdir(sim_path)
+    my_sim_rlx.inpt['optcell'] = rlx_opt
+    my_sim_rlx.inpt['dipdip'] = dipdip
+    my_sim_rlx.inpt['ntime'] = 500
+    my_sim_rlx.set_prim_strc_nc(NC_FILE,step = NC_Step,avg=avg_nc_str)
+    my_sim_rlx.write_hist()
+    my_sim_rlx.write_run_data()        
+    os.system(f'sh MB_run.sh')
+
+
+def MC_SIMS(Har_fle,Anh_fle,rlx_opt=2,dipdip=1,temperature=1,ndym=2000,nctime=40,hmctt=40,NC_FILE=None,NC_Step=-1,
+            avg_nc_str=False,ngqpt=[2,2,2],ncell=[1,1,1],prefix='Strc',EXEC='MB_16Jun',NCPU=1,sim_path='./'):
+    my_sim = MB_sim(EXEC, Har_fle, Anhar_coeffs=Anh_fle, ngqpt=ngqpt, ncell= ncell, ncpu=NCPU, test_set='no',prefix = prefix)
+    my_sim.MC_dta(ndym,  restartxf=0, optcell=rlx_opt, nctime=nctime, hmctt=hmctt)
+    print('temperature = ',temperature)
+    my_sim.inpt['temperature'] = [temperature]
+    my_sim.inpt['dipdip'] = dipdip
+    sim_path = sim_path 
+    os.makedirs(sim_path,exist_ok=True)    
+    os.chdir(sim_path)  
+    if NC_FILE is not None:
+        my_sim.set_prim_strc_nc(NC_FILE,step = NC_Step, avg=avg_nc_str) 
+        my_sim.write_hist()                     
+    my_sim.write_run_data()   
+    os.system(f'sh MB_run.sh')
+
+        
+
+
+
+                                
