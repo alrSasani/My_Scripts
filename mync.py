@@ -6,6 +6,7 @@ from ase import build, Atoms
 from ase.units import Ha, Bohr
 from os.path import exists
 import os
+from ase.units import Ang, Bohr, Hartree, eV, _e
 from ase.io import write
 import matplotlib.pyplot as plt
 # from my_functions import map_strctures
@@ -537,6 +538,8 @@ class hist_reader():
         MEDIUM_SIZE = 13
         BIGGER_SIZE = 13
         my_dpi=300
+        
+        cnst = (Hartree/Bohr**3)*_e**2 
         plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
         plt.rc('axes', titlesize=SMALL_SIZE)     # fontsize of the axes title
         plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
@@ -546,14 +549,14 @@ class hist_reader():
         plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title                                         
         stress_tmp = np.array(self.get_stress())
 
-        plt.plot(stress_tmp[plot_step:,0],label='sig_1')
-        plt.plot(stress_tmp[plot_step:,1],label='sig_2')
-        plt.plot(stress_tmp[plot_step:,2],label='sig_3')  
-        plt.plot(stress_tmp[plot_step:,3],label='sig_4')
-        plt.plot(stress_tmp[plot_step:,4],label='sig_5')
-        plt.plot(stress_tmp[plot_step:,5],label='sig_6')   
+        plt.plot(cnst*stress_tmp[plot_step:,0],label='sig_1')
+        plt.plot(cnst*stress_tmp[plot_step:,1],label='sig_2')
+        plt.plot(cnst*stress_tmp[plot_step:,2],label='sig_3')  
+        plt.plot(cnst*stress_tmp[plot_step:,3],label='sig_4')
+        plt.plot(cnst*stress_tmp[plot_step:,4],label='sig_5')
+        plt.plot(cnst*stress_tmp[plot_step:,5],label='sig_6')   
         plt.xlabel('Steps')       
-        plt.ylabel('Stress(Ha/Bhr3)')       
+        plt.ylabel('Stress(GPa)')       
         plt.legend()                                 
         plt.savefig(f'{output}')
 

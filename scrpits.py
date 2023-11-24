@@ -61,9 +61,10 @@ def get_avg_cell_SL(har_xml1,dim_1,har_xml2,dim_2):
     ref_cell[2,2] = a2
     return(ref_cell)
 
-def SL_MAKER(DDB1,modle1,ncell1,sim_path1,modle2,DDB2,ncell2,sim_path2,ngqptm,NCPU=1,ref_cell='M2',Har_int='Har_int',Anh_int='Anh_int',
+def SL_MAKER(DDB1,modle1,ncell1,DDB2,modle2,ncell2,ngqptm,sim_path1='./M1',sim_path2='./M2',NCPU=1,ref_cell='M2',Har_int='Har_int',Anh_int='Anh_int',
              miss_fit_trms=True,Higher_order_strain=True,negelect_A_SITE=True,negelect_Tot_FCs=True,symmetric=True,xml_cell1=None,
              xml_cell2=None,if_return_atom=False):
+    
     print('making SL Pot')
 
     if xml_cell1==None:
@@ -97,11 +98,15 @@ def SL_MAKER(DDB1,modle1,ncell1,sim_path1,modle2,DDB2,ncell2,sim_path2,ngqptm,NC
     my_atm_list_tmp = tools.mapping(my_atms1,my_atms2)
     trans_atms2 = sort(my_atms2,tags = my_atm_list_tmp) 
 
+
     if ref_cell == 'M1':
+        print(f'{my_atms1.get_chemical_formula()} as refrence')
         ref_atoms_cell = my_atms1.get_cell()
     elif ref_cell == 'M2':
+        print(f'{my_atms2.get_chemical_formula()} as refrence')
         ref_atoms_cell = my_atms2.get_cell()
     elif ref_cell == 'avg':
+        print(f'aerage cells of {my_atms1.get_chemical_formula()} and {my_atms2.get_chemical_formula()} as refrence')
         ref_atoms_cell = get_avg_cell_SL(har_xml1,ncell1[2],har_xml2,ncell2[2])
 
     print('refrence cell in SL is: \n',ref_atoms_cell)
