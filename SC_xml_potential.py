@@ -1,3 +1,6 @@
+"""
+Builds the supercell and creates the harmonic and anharmonic potential for the supercell
+"""
 import numpy as np
 from math import ceil
 from ase import Atoms
@@ -11,7 +14,16 @@ import ase
 ###############################################################################
 
 class Har_sc_maker():
+    """
+    This class creates the supercell and the harmonic potential for the supercell
+    """
     def __init__(self, xml_file, SC_mat,strain_in=np.zeros((3,3)),neglect_tot_FC=False):
+        """
+        xml_file: the xml file for the unit cell
+        SC_mat: the supercell matrix
+        strain_in: the strain applied to the unit cell
+        neglect_tot_FC: neglect the total force constants
+        """
         self.__Curnt_id = 0 
         self.neglect_tot_FC = neglect_tot_FC  
         self.has_SC_FCDIC = False
@@ -21,27 +33,46 @@ class Har_sc_maker():
         self.SC_natom = self.mySC.get_global_number_of_atoms()
 
     def add_material(self, xml_file, SCMAT,strain_in):
+        """
+        set the material.
+        params:
+        xml_file: the xml file for the unit cell
+        SCMAT: the supercell matrix
+        strain_in: the strain applied to the unit cell"""
         my_xml_obj = xml_io.Xml_sys_reader(xml_file, mat_id=str(
             self.__Curnt_id), extract_dta=True)        
         self.SC_mat = np.array(SCMAT)
         self.xml = my_xml_obj
 
         temp_atoms = my_xml_obj.ase_atoms
+        # the cell parameter of the target reference unit cell
         cell = np.dot((np.eye(3)+strain_in),temp_atoms.get_cell())
+        # the new reference unit cell
         self.my_atoms = Atoms(numbers= temp_atoms.get_atomic_numbers(),scaled_positions=temp_atoms.get_scaled_positions(),cell = cell)  
+        # set the BEC, tag_id, and str_ph arrays to the new reference unit cell
         self.my_atoms.set_array(
             'BEC', temp_atoms.get_array('BEC'))
+        # tag_id is the material id. 
         self.my_atoms.set_array(
             'tag_id', temp_atoms.get_array('tag_id'))
+        # str_ph is the strain-phonon coupling term. For each atom there is a  viogot strain.
         self.my_atoms.set_array(
             'str_ph', temp_atoms.get_array('str_ph'))
         
+        # the cell parameter of the target reference unit cell
         self.STRC_uc_cell = self.my_atoms.get_cell()
+        # local force constants
         self.loc_FC_dic = my_xml_obj.loc_FC_tgs
+        # total force constants
         self.tot_FC_dic = my_xml_obj.tot_FC_tgs
+        # whether the total force constants are available/needed
         self.has_tot_FC = my_xml_obj.has_tot_FC*(not self.neglect_tot_FC)
                   
     def get_period_cells(self):
+        """
+        get the range of the short range force constants and the long range force constants.
+        (maximum of local and total force constants)
+        """
         ncll_loc = self.xml.ncll
         if self.has_tot_FC:
             self.xml.get_tot_Per_clls()
@@ -56,9 +87,13 @@ class Har_sc_maker():
         return(xperiod,yperiod,zperiod) 
                            
     def get_SC_FCDIC(self):
+        """
+        get the short range force constants and the long range force constants for the supercell
+        in a dictionary format. The key is the atom index and the cell index.
+        """
         STRC_inv_uc_cell = np.linalg.inv(self.STRC_uc_cell) 
         tag_id = self.mySC.get_array('tag_id')
-        STRC_Cell =  self.mySC.get_cell()      
+        STRC_Cell =  self.mySC.get_cell()
         xperiod,yperiod,zperiod = self.get_period_cells()
         self.loc_SC_FCDIC = {}
         self.tot_SC_FCDIC = {}
@@ -80,6 +115,12 @@ class Har_sc_maker():
                             id_j = tag_id[atm_j][1]
                             cell_b = Ucells_vecs_in_STRC[atm_j,atm_i] + Per_cells
                             cell_b = list(map(int, cell_b))  
+                            # the key for the local force constants
+                            # id_i: the material id of the atom i
+                            # tag_i: the tag of the atom i (the index of the atom in the unit cell)
+                            # id_j: the material id of the atom j
+                            # tag_j: the tag of the atom j (the index of the atom in the unit cell)
+                            # cell_b: the cell index of the atom j
                             UC_key = f'{id_i}{tag_i}_{id_j}{tag_j}_{cell_b[0]}_{cell_b[1]}_{cell_b[2]}'  
                             SC_key = f'{atm_i}_{atm_j}_{prd1}_{prd2}_{prd3}'
                             if UC_key in self.loc_FC_dic.keys():
@@ -93,6 +134,9 @@ class Har_sc_maker():
         self.has_SC_FCDIC = True
 
     def reshape_FCDIC(self, tmp_sc=None):
+        """
+        reshape the force constants dictionary to the supercell force constants dictionary. 
+        """
         if not self.has_SC_FCDIC:
             self.get_SC_FCDIC()
         self.Fin_loc_FC = {}
@@ -137,6 +181,9 @@ class Har_sc_maker():
         self.has_FIN_FCDIC = True
 
     def write_xml(self, out_put):
+        """
+        write the supercell xml file including the harmonic part.
+        """
         SC_num_Uclls = np.linalg.det(self.SC_mat)
         xml_dta = {}
         if not self.has_FIN_FCDIC:
@@ -160,7 +207,8 @@ class Har_sc_maker():
         xml_dta['SC_BEC'] = self.mySC.get_array('BEC') 
         xml_dta['SC_atoms_pos'] = self.mySC.get_positions()/Bohr
         xml_dta['SC_local_FC'] = self.Fin_loc_FC
-
+        # strain phonon coupling term. 
+        # TODO: rename it to SC_str_ph
         xml_dta['SC_corr_forc'] = self.mySC.get_array('str_ph')   
         xml_dta['strain'] = self.xml.strain
         xml_dta['my_atm_list'] = range(len(self.mySC))
@@ -171,7 +219,18 @@ class Har_sc_maker():
 # Anharmonic Potential Creation::
 
 class Anh_sc_maker():
+    """
+    This class creates the anharmonic potential for the supercell
+    """
     def __init__(self, har_xml, anh_xml,strain_in=np.zeros((3,3)),missfit_strain=True,Higher_order_strain=False):
+        """
+        params:
+        har_xml: the xml file for the unit cell
+        anh_xml: the xml file for the anharmonic potential
+        strain_in: the strain applied to the unit cell
+        missfit_strain: whether the missfit strain is considered
+        Higher_order_strain: whether the higher order strain is considered
+        """
         self.xml = har_xml
         self.myxml_clss = xml_io.Xml_sys_reader(self.xml)
 
@@ -187,6 +246,16 @@ class Anh_sc_maker():
             self.voigt_strain = [0,0,0,0,0,0]
 
     def add_strain_terms(self,coeff, trms):
+        """
+        add the strain terms to the anharmonic potential. 
+        params:
+        coeff: the anharmonic coefficients. the coefficients are based on the anharmonic potential without strain, and computed for the strained unit cell. Including strain-strain and strain-phonon coupling terms.
+        trms: the anharmonic terms corresponding to the coefficients. 
+
+        Returns:
+        coeff: the modified anharmonic coefficients which includes the coefficients due to misfit. 
+        trms: the modified anharmonic terms which includes the terms due to misfit.
+        """
         tol_04 = 10**-4
         total_coefs = len(coeff)
         my_atoms = self.myxml_clss.ase_atoms
@@ -220,6 +289,12 @@ class Anh_sc_maker():
         return(coeff,trms)      
 
     def SC_trms(self, mySC, SC_mat):
+        """
+        create the anharmonic terms for the supercell. 
+        params:
+        mySC: the supercell atoms.
+        SC_mat: the supercell matrix
+        """
         tol_04 = 0.0001        
         self.myxml_clss.get_ase_atoms()        
         my_atoms = self.myxml_clss.ase_atoms
@@ -237,6 +312,7 @@ class Anh_sc_maker():
         STRC_cell = mySC.get_cell()
         Xred_STRC = mySC.get_scaled_positions()
         my_terms = []
+        # repeat the terms in the supercell.
         for cc in range(len(coeff)):
             my_terms.append([])
             for tc in range(len(trms[cc])):

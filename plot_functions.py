@@ -383,15 +383,17 @@ class xml_sys:
 ###########################################################
 
 class Get_Pol():
-    def __init__(self,Str_ref,BEC_ref,proj_dir = [1,1,1],cntr_at = ['Ti'],trans_mat = [1,1,1],dim_1=1,fast=False):
+    def __init__(self,Str_ref,BEC_ref,proj_dir = [1,1,1],cntr_at = ['Ti'],trans_mat = [1,1,1],dim_1=1,fast=False,cal_c_ov_a=True,origin_atm=['Pb','Sr']):
         self.proj_dir=proj_dir
         self.cntr_at=cntr_at
         self.dim_1=dim_1
         self.BEC_ref=BEC_ref 
         self.Str_ref= Str_ref   
         self.trans_mat = trans_mat
+        self.origin_atm = origin_atm
         self.get_NL()
         self.fast = fast
+        self.cal_c_ov_a = cal_c_ov_a
 
     def get_NL(self):
         self.chmsym = self.Str_ref.get_chemical_symbols()
@@ -421,41 +423,64 @@ class Get_Pol():
             cutof_dic['Pb'] = ABC_SL[0]/2 - 0.5 #self.Str_ref.get_distance(1,0)-cutof_dic['Ti']+0.1
             cutof_dic['O'] =  ABC_SL[0]/2 - 0.5 + 0.1 #self.Str_ref.get_distance(1,2)-cutof_dic['Ti']+0.1
             cutof_dic['Ca'] = ABC_SL[0]/2 - 0.5 + 0.1 # self.Str_ref.get_distance(1,2)-cutof_dic['Ti']+0.1
-
         sccuof = [cutof_dic[sym] for sym in self.chmsym]        
         self.mnl = NeighborList(sccuof,sorted=False,self_interaction = False,bothways=True)
         self.mnl.update(self.Str_ref)
 
     def get_pol_mat(self,Str_dist):  
         ABC_SL0=self.Str_ref.cell.cellpar()[0:3]
-        v0 = np.linalg.det(self.Str_ref.get_cell())/(self.trans_mat[0]*self.trans_mat[1]*self.trans_mat[2])
-        ABC_SL = [ABC_SL0[0]/self.trans_mat[0],ABC_SL0[1]/self.trans_mat[1],ABC_SL0[2]/self.trans_mat[2]]   
-        ref_positions = self.Str_ref.get_positions()
-        
+        ABC_UC = [ABC_SL0[0]/self.trans_mat[0],ABC_SL0[1]/self.trans_mat[1],ABC_SL0[2]/self.trans_mat[2]] 
+        v0 = np.linalg.det(self.Str_ref.get_cell())/(self.trans_mat[0]*self.trans_mat[1]*self.trans_mat[2])          
+        ref_positions = self.Str_ref.get_positions()        
         disp_proj = self.get_disp(Str_dist)
+        self.c_ov_a_data = np.zeros((self.trans_mat[0],self.trans_mat[1],self.trans_mat[2],4)) 
+        # self.c_ov_a = np.zeros((self.trans_mat[0],self.trans_mat[1],self.trans_mat[2])) 
         pol_mat = np.zeros((self.trans_mat[0],self.trans_mat[1],self.trans_mat[2],3))  
-        ## TODO count number of unique centers and then for each of them define a wight with respect to number of neighbours
+        pos_final_strc = self.Final_strc.get_positions()
         for aa in self.cntr_indxs:
-            NNs,offsets = self.mnl.get_neighbors(aa)
-            # print(len(NNs))
-            # if ref_positions[aa,2] <= ABC_SL[2]*self.dim_1 :
-            #     k=0
-            # else:
-            #     k=1            
-            a,b,c=int(abs(ref_positions[aa,0]-ref_positions[self.ref_atm,0])/(ABC_SL[0]*0.99)),int(abs(ref_positions[aa,1]-ref_positions[self.ref_atm,1])/(ABC_SL[1]*0.99)),int(abs(ref_positions[aa,2]-ref_positions[self.ref_atm,2])/(ABC_SL[2]*0.99))
-
-            NNs = np.append(aa,NNs)            
-            # print('Number of Neghbours  =  ',len(NNs))
+            NNs,offsets = map(list,self.mnl.get_neighbors(aa))
+            a,b,c=int(abs(ref_positions[aa,0]-ref_positions[self.ref_atm,0])/(ABC_UC[0]*0.99)),int(abs(ref_positions[aa,1]-ref_positions[self.ref_atm,1])/(ABC_UC[1]*0.99)),int(abs(ref_positions[aa,2]-ref_positions[self.ref_atm,2])/(ABC_UC[2]*0.99))
+            NNs.append(aa) 
+            offsets.append([0,0,0])
             syms_NNS = []
-            for j in NNs: 
+            pos_c_ov_a = []
+            for j,offset in zip(NNs,offsets): 
                 syms_NNS.append(self.chmsym[j])
-                pol_mat[a,b,c,:] += self.wght[self.chmsym[j]]*np.dot(disp_proj[j],self.BEC_ref[j])   # Bohr
-            
-        pol_mat=16*pol_mat/v0
+                pol_mat[a,b,c,:] += self.wght[self.chmsym[j]]*np.dot(disp_proj[j],self.BEC_ref[j])   
+                if self.cal_c_ov_a and self.chmsym[j] in self.origin_atm:
+                    pos_c_ov_a.append(pos_final_strc[j]+(offset*ABC_SL0))
+            temp_ca_data = self.get_c_ov_a(pos_c_ov_a,ABC_UC)
+            self.c_ov_a_data[a,b,c,:] = [temp_ca_data[0],temp_ca_data[1],temp_ca_data[2],temp_ca_data[2]/(0.5*temp_ca_data[0]+0.5*temp_ca_data[1])]
+            # self.c_ov_a[a,b,c] = 
+            if self.cal_c_ov_a:
+                v0 = abs(self.c_ov_a_data[a,b,c,0]*self.c_ov_a_data[a,b,c,1]*self.c_ov_a_data[a,b,c,2])
+            pol_mat[a,b,c,:] = 16*pol_mat[a,b,c,:]/v0       
         return(pol_mat)
 
+    def get_c_ov_a(self,pos_c_ov_a,ABC_UC):
+        tol_c = 0.5*ABC_UC[2]
+        tol_a = 0.5*ABC_UC[0]
+        tol_b = 0.5*ABC_UC[1]
+        c_tmp,c_cntr = 0,0
+        a_tmp,a_cntr = 0,0
+        b_tmp,b_cntr = 0,0        
+        for i,ipos in enumerate(pos_c_ov_a):
+            for j,jpos in enumerate(pos_c_ov_a):
+                if i!=j:
+                    abs_dist = abs(ipos-jpos)
+                    if abs_dist[2]>tol_c and abs_dist[0]<tol_a and abs_dist[1]<tol_b:
+                        c_tmp+=abs_dist[2]
+                        c_cntr+=1
+                    elif abs_dist[0]>tol_a and  abs_dist[1]<tol_b and abs_dist[2]<tol_c :
+                        a_tmp+=abs_dist[0]
+                        a_cntr+=1
+                    elif abs_dist[1]>tol_b and abs_dist[0]<tol_a and abs_dist[2]<tol_c:
+                        b_tmp+=abs_dist[1]
+                        b_cntr+=1
+        c_ov_a_data = [a_tmp/a_cntr,b_tmp/b_cntr,c_tmp/c_cntr]
+        return(c_ov_a_data)
+                
     def get_disp(self,Str_dist):  
-        # Prim_Str_Hist = Atoms(numbers=Str_dist.get_atomic_numbers(),scaled_positions=self.Str_ref.get_scaled_positions(), cell=Str_dist.get_cell(), pbc=True)
         dist_str = Atoms(numbers=Str_dist.get_atomic_numbers(),scaled_positions=Str_dist.get_scaled_positions(), cell=self.Str_ref.get_cell(), pbc=True)
         if self.fast:
             Fnl_str=map_strctures(dist_str,self.Str_ref,tol=0.2)
@@ -485,7 +510,7 @@ def plot_3d_pol_vectrs_pol(xml_file,NC_FILE_STR,dim,xml_file2=None,NC_stp=-1,Fas
         mlab.pipeline.vector_cut_plane(src, mask_points=1, scale_factor=1)
     mlab.show() 
           
-def get_pol_vectrs(xml_file,NC_FILE_STR,dim,xml_file2=None,NC_stp=-1,dim_1=0,Fast_map=True,cntr_at = ['Ti'],plot_dire=[1,1,1],ave_str=False,length_mul=4):
+def get_pol_vectrs(xml_file,NC_FILE_STR,dim,xml_file2=None,NC_stp=-1,dim_1=0,Fast_map=True,cntr_at = ['Ti'],plot_dire=[1,1,1],cal_c_ov_a=True,origin_atm=['Pb','Sr'],ave_str=False,length_mul=4):
     myxml1=xml_sys(xml_file)
     myxml1.get_atoms()
     # atm_pos1=myxml1.atm_pos
@@ -498,38 +523,27 @@ def get_pol_vectrs(xml_file,NC_FILE_STR,dim,xml_file2=None,NC_stp=-1,dim_1=0,Fas
             raise 'dim_1 should be provided for xml 2'
         myxml2=xml_sys(xml_file2)
         myxml2.get_atoms()
-        # atm_pos2=myxml2.atm_pos
         myxml2.get_ase_atoms()
-        # my_atms2=myxml2.ase_atoms
         ref_str_2 = my_atms1.repeat([1,1,dim[2]-dim_1])
-        # ref_str_2 = make_supercell(my_atms2,[[dim[0],0,0],[0,dim[1],0],[0,0,dim[2]-dim_1]]) 
         ref_strt = stack(ref_str,ref_str_2, axis = 2)
-        ref_str = ref_strt.repeat([dim[0],dim[1],1]) # make_supercell(ref_strt,[[dim[0],0,0],[0,dim[1],0],[0,0,1]])
-        # write('POSCAR_REFTEST',ref_str,vasp5=True,sort=True)
+        ref_str = ref_strt.repeat([dim[0],dim[1],1]) 
     
     else:
         ref_str = make_supercell(my_atms1,[[dim[0],0,0],[0,dim[1],0],[0,0,dim[2]]])
-
     BEC = ref_str.get_array('BEC')
-    # atm_pos=[atm_pos1,atm_pos2]
-    # BEC=np.zeros((2,5,3,3))
-    # for bb in range(2):
-    #     for aa in range(my_atms1.get_global_number_of_atoms()):
-    #         brn_tmp=[float(k) for k in atm_pos[bb][aa][2].split()[:]]
-    #         brn_tmp=np.array(brn_tmp)
-    #         brn_tmp=np.reshape(brn_tmp,(3,3))
-    #         BEC[bb,aa,:,:]=brn_tmp
-
     if ave_str:
         final_Str_Hist = mync.get_avg_str(NC_FILE_STR,init_stp=NC_stp)
     else:
         final_Str_Hist = mync.get_NC_str(NC_FILE_STR,stp=NC_stp)
     Prim_Str_Hist = Atoms(numbers=ref_str.get_atomic_numbers(),scaled_positions=ref_str.get_scaled_positions(), cell=final_Str_Hist.get_cell(), pbc=True)
-    my_pol = Get_Pol(Prim_Str_Hist,BEC,proj_dir = plot_dire,cntr_at = cntr_at,trans_mat = dim,dim_1=dim_1,fast=Fast_map)
-    write('M2_POSCAR',final_Str_Hist,vasp5=True,sort=True)
-    pol_mat=my_pol.get_pol_mat(final_Str_Hist)
-    # print(pol_mat)
-    return(pol_mat)
+    my_pol = Get_Pol(Prim_Str_Hist,BEC,proj_dir = plot_dire,cntr_at = cntr_at,trans_mat = dim,dim_1=dim_1,fast=Fast_map,cal_c_ov_a=cal_c_ov_a,origin_atm=origin_atm)
+    write('POSCAR_Finall_Strc_Pol',final_Str_Hist,vasp5=True,sort=True)
+    pol_mat = my_pol.get_pol_mat(final_Str_Hist)
+
+    if cal_c_ov_a==True:
+        return(pol_mat,my_pol.c_ov_a_data)
+    else:
+        return(pol_mat)
 
 def plot_3d_pol_vectrs_dis(xml_file,NC_FILE_STR,dim,xml_file2=None,NC_stp=-1,Fast_map=True,plot_3d=False,cntr_at = ['Ti'],plot_dire=[1,1,1],ave_str=False,length_mul=4):
     myxml1=xml_sys(xml_file)
@@ -586,7 +600,6 @@ def plot_3d_pol_vectrs_dis(xml_file,NC_FILE_STR,dim,xml_file2=None,NC_stp=-1,Fas
     ax.set_ylabel('y')
     ax.set_zlabel('z')
     plt.show()  
-
 
 def get_pol(xml_file,NC_FILE_STR,dim,xml_file2=None,NC_stp=-1,Fast_map=True,cntr_at = ['Ti'],plot_dire=[1,1,1],ave_str=False):
     myxml1=xml_sys(xml_file)

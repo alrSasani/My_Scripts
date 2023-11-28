@@ -1,9 +1,16 @@
+"""
+Functions to calculate the missfit terms.
+"""
 import copy
 import numpy as np
 
 
 def find_str_phonon_coeffs( trms,Higher_order_strain=False):
-   '''this function returns all the terms with strain phonon couplings'''
+   '''This function returns the list of ID of coefficients that have strain phonon coupling
+   params:
+   trms: list of all terms
+   Higher_order_strain: if True, it will return the coefficients that have strain-strain coupling.
+   '''
    str_phonon_coeffs = []
    nterm = 0
    for i in range(len(trms)):
@@ -18,7 +25,9 @@ def find_str_phonon_coeffs( trms,Higher_order_strain=False):
    return(str_phonon_coeffs)
 
 def get_str_phonon_voigt( trms,  Higher_order_strain=False ,voigts=[1, 2, 3]):
-   '''This function returns the number of coefficients that have strain phonon coupling'''
+   '''This function returns the number of coefficients that have strain phonon coupling
+      same as find_str_phonon_coeffs but only for the voigts that are in the list voigts.
+   '''
    str_phonon_coeffs = find_str_phonon_coeffs(trms,Higher_order_strain)
    str_phonon_voigt = []
 
@@ -43,7 +52,12 @@ def get_str_phonon_voigt( trms,  Higher_order_strain=False ,voigts=[1, 2, 3]):
 def get_new_str_terms( term,get_org=False):
    '''This function changes the term to a dictionary so that we can expand and multiply like polynomials
    it returns a list like : [[({'z': 1, 'c': 1}, 2)]] where we have in the dictionary different voigt strains 
-   (x,y,z,xy ..) and their values as a,b,c,d ... and the power of the strain as the last element of the list '''
+   (x,y,z,xy ..) and their values as a,b,c,d ... and the power of the strain as the last element of the list 
+
+   example:
+   term=[[({'z': 1, 'c': 1}, 2)]]    i.e. (1*z+1*c)^2. where z is the strain in z direction and c is misfit strain in z direction.
+   '''
+
    vogt_terms = []
    my_vogt_dic = {1: 'x', 2: 'y', 3: 'z', 4: 'yz', 5: 'xz', 6: 'xy'}
    my_vogt_str = {1: 'a', 2: 'b', 3: 'c', 4: 'd', 5: 'e', 6: 'f', }
@@ -66,6 +80,9 @@ def get_new_str_terms( term,get_org=False):
    return(vogt_terms)
 
 def get_mult_coeffs( my_str_trms):
+   """
+   This function returns the multiplication of the terms in the list my_str_trms
+   """
    mult_terms = []
    for i in range(len(my_str_trms)):
       tem_dic = {}
@@ -80,6 +97,8 @@ def get_mult_coeffs( my_str_trms):
    return(mult_terms)
 
 def get_shifted_terms( term, my_strain=[0, 0, 0]):
+   """
+   This function returns the terms by removing the terms already inside the model ."""
    not_shift = ['x', 'y', 'z']
    a, b, c = my_strain[0], my_strain[1], my_strain[2]
    my_mul_terms = get_mult_coeffs(
@@ -114,6 +133,10 @@ def get_shifted_terms( term, my_strain=[0, 0, 0]):
    return(shift_mult_terms)
 
 def get_missfit_term( coeff, trms, my_tags, my_strain, voigts=[1, 2, 3]):
+   """
+   For one coefficient. 
+   For each term, this function returns the missfit terms (not already in the model).
+   """
    tol_wght = 10**-10
    tot_nterms = 0 
    new_coeffs = []
@@ -198,6 +221,7 @@ def get_missfit_term( coeff, trms, my_tags, my_strain, voigts=[1, 2, 3]):
                for my_key in temp_trms.keys():
                   tot_nterms += 1
                   my_value = float(coeff['value']) 
+                  # to follow the convention of the multibinit. 
                   my_key = my_key.replace('x', '(eta_1)')
                   my_key = my_key.replace('y', '(eta_2)')
                   my_key = my_key.replace('z', '(eta_3)')
@@ -215,6 +239,9 @@ def get_missfit_term( coeff, trms, my_tags, my_strain, voigts=[1, 2, 3]):
    return(new_coeffs, new_temrs)
 
 def get_missfit_terms( coeff, terms, my_tags, my_strain, Higher_order_strain=False,voigts=[1, 2, 3]):
+   """
+   Loop over the coefficients and return the missfit terms for each coefficient.   
+   """
    str_phonon_voigt = get_str_phonon_voigt(terms, Higher_order_strain=Higher_order_strain ,voigts=voigts)
    new_coeffs = []
    new_terms = []
@@ -227,6 +254,9 @@ def get_missfit_terms( coeff, terms, my_tags, my_strain, Higher_order_strain=Fal
    return(new_coeffs,new_terms)
 
 def get_disp_text(my_term,my_tags):
+   """
+   This function returns the text of the displacement term.
+   """
    disp_text = ''
    ndisp = int(my_term[-1]['dips'])
    for disp in range(ndisp):
@@ -245,10 +275,16 @@ def get_disp_text(my_term,my_tags):
    return(disp_text)     
 
 def get_strain( strain=np.zeros((0,0))):
+   """
+   This function returns the voigt strain from the strain tensor.
+   """
    voigt_str = [strain[0,0],strain[1,1],strain[2,2],(strain[1,2]+strain[2,1])/2,(strain[0,2]+strain[2,0])/2,(strain[0,1]+strain[1,0])/2]
    return(np.array(voigt_str))
 
 def get_elas_missfit(ela_cnst,my_strain):
+   """
+   This function returns the elastic missfit terms.
+   """
    tol_str = 10**-6
    # myxml_clss = xml_sys(self.xml)
    # myxml_clss.get_ela_cons()

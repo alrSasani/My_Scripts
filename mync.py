@@ -539,7 +539,7 @@ class hist_reader():
         BIGGER_SIZE = 13
         my_dpi=300
         
-        cnst = (Hartree/Bohr**3)*_e**2 
+        cnst = (Hartree/Bohr**3)*_e*10**21 
         plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
         plt.rc('axes', titlesize=SMALL_SIZE)     # fontsize of the axes title
         plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels

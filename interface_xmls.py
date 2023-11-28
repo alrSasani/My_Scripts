@@ -23,6 +23,7 @@ import tools
 ###########################################################
 
 class Har_interface:
+
     ''' interface harmonic potential generation: This class is given two xml file for two materilas for the interface two 3x3 matirixes(SC_mat1 and SC_mat2) which give the matirx for
      one side of the SL (these should have SC_mat1[0,0]=SC_mat2[0,0] and SC_mat1[1,1]=SC_mat2[1,1] while SC_mat1[2,2] and SC_mat2[2,2] define the thickness of the each material
      in two sides of the SL) '''
@@ -342,13 +343,11 @@ class Har_interface:
         eps = {}
         eps['0'] = self.xmls_objs['0'].eps_inf
         eps['1'] = self.xmls_objs['1'].eps_inf
-        SCL = {}
-        
+        SCL = {}        
         SCL['0'] = [np.sqrt(eps_SL[0][0]/eps['0'][0][0]), np.sqrt(eps_SL[1]
                                                                   [1]/eps['0'][1][1]), np.sqrt(eps_SL[2][2]/eps['0'][2][2])]
         SCL['1'] = [np.sqrt(eps_SL[0][0]/eps['1'][0][0]), np.sqrt(eps_SL[1]
                                                                   [1]/eps['1'][1][1]), np.sqrt(eps_SL[2][2]/eps['1'][2][2])]
-
         maped_strs = self.maped_strs
         dic_id_bec = {}
         tag_id_0 = self.uc_atoms['0'].get_array('tag_id')

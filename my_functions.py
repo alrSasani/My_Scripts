@@ -38,6 +38,51 @@ Hatoev=Ha/Bohr
 import time
 import xml_io
 
+def get_dist_strc(SL_atms,with_bloch_comp,dim,atom_to_disp,mat_id_To_displace,ref_atm_sym,STRC_inv_uc_cell,dom_const,my_dic):
+    SC_dist = make_supercell(SL_atms, dim)
+    chem_sym = SC_dist.get_chemical_symbols()
+    tag_id = SC_dist.get_array('tag_id')
+    a_dir = dim[0][0]
+    new_pos = []
+    if with_bloch_comp:                                   
+        all_cells = list(range(a_dir))
+        chem_sym = SC_dist.get_chemical_symbols()
+        for atm_cnt, atm_pos in enumerate(SC_dist.get_positions()):
+            if chem_sym[atm_cnt] in atom_to_disp and tag_id[atm_cnt][1]==mat_id_To_displace:
+                ref_atm = find_clesest_atom(SC_dist,[0,0,0],atm_sym=ref_atm_sym[chem_sym[atm_cnt]])
+                dists = atm_pos - SC_dist.get_positions()[ref_atm]
+                cell_atm = np.dot((1/0.95)*STRC_inv_uc_cell, dists)
+                cell_atm = list(map(int,cell_atm))
+
+                if cell_atm[0] == all_cells[0] or cell_atm[0] == int(a_dir/2):
+                    # if cell_atm[0] == all_cells[0]:
+                    new_pos.append([atm_pos[0],atm_pos[1]+dom_const[1]*my_dic[1],atm_pos[2]]) 
+                    
+                    # if cell_atm[0] == int(a_dir/2):
+                    #     new_pos.append([atm_pos[0],atm_pos[1]+dom_const[1]*my_dic[1],atm_pos[2]]) 
+
+                elif cell_atm[0] in list(range(1,int(a_dir/2))):
+                    new_pos.append([atm_pos[0],atm_pos[1],atm_pos[2]+dom_const[2]*my_dic[2]])
+                else:
+                    new_pos.append([atm_pos[0],atm_pos[1],atm_pos[2]+my_dic[2]])
+            else:
+                new_pos.append(atm_pos)
+    else:
+        for atm_cnt, atm_pos in enumerate(SC_dist.get_positions()):
+            if chem_sym[atm_cnt] in atom_to_disp and tag_id[atm_cnt][1]==mat_id_To_displace:
+                ref_atm = find_clesest_atom(SC_dist,[0,0,0],atm_sym=ref_atm_sym[chem_sym[atm_cnt]])
+                dists = atm_pos - SC_dist.get_positions()[ref_atm]
+                cell_atm = np.dot((1/0.95)*STRC_inv_uc_cell, dists)
+                cell_atm = list(map(int,cell_atm))
+                if cell_atm[0] in list(range(0,int(a_dir/2))):
+                    new_pos.append([atm_pos[0],atm_pos[1],atm_pos[2]+dom_const[2]*my_dic[2]])
+                else:
+                    new_pos.append([atm_pos[0],atm_pos[1],atm_pos[2]+my_dic[2]])                        
+            else:
+                new_pos.append(atm_pos)
+    my_sl_distor = Atoms(numbers=SC_dist.get_atomic_numbers(),positions=new_pos, cell=SC_dist.get_cell(), pbc=True)
+    return(my_sl_distor)
+
 def get_str_disp(mode,Phonon_obj,qpt = [0,0,0],get_disp=False,amp=1,path='./'):  
     os.chdir(path)        
     evecs,freqs = get_Evecs_Freqa_from_phonon_obj(Phonon_obj,qpt=qpt)
