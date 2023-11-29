@@ -178,7 +178,7 @@ def SL_MAKER(DDB1,modle1,ncell1,DDB2,modle2,ncell2,ngqptm,sim_path1=None,sim_pat
 
     # sort the atoms of the primitive cell 2 to match the primitive cell 1
     # my_atom_list_tmp is a list to map the atoms of the primitive cell 2 to the primitive cell 1
-    my_atm_list_tmp = tools.mapping(my_atms1,my_atms2)
+    my_atm_list_tmp = tools.get_mapped_strcs(my_atms1,my_atms2,Ret_index=True)
     # the atoms of the primitive cell 2 after sorting
     trans_atms2 = sort(my_atms2,tags = my_atm_list_tmp) 
 

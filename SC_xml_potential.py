@@ -146,8 +146,8 @@ class Har_sc_maker():
         else:
             my_keys = self.loc_mykeys
         if tmp_sc is not None:
-            my_atm_list = tools.mapping(self.mySC,tmp_sc)
-            my_atm_list_tmp = tools.mapping(tmp_sc,self.mySC)
+            my_atm_list = tools.get_mapped_strcs(self.mySC,tmp_sc,Ret_index=True)
+            my_atm_list_tmp = tools.get_mapped_strcs(tmp_sc,self.mySC,Ret_index=True)
             self.mySC = sort(self.mySC,tags = my_atm_list_tmp) 
         else:
             my_atm_list = range(self.SC_natom)

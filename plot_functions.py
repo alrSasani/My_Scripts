@@ -383,7 +383,7 @@ class xml_sys:
 ###########################################################
 
 class Get_Pol():
-    def __init__(self,Str_ref,BEC_ref,proj_dir = [1,1,1],cntr_at = ['Ti'],trans_mat = [1,1,1],dim_1=1,fast=False,cal_c_ov_a=True,origin_atm=['Pb','Sr']):
+    def __init__(self,Str_ref,BEC_ref,proj_dir = [1,1,1],cntr_at = ['Ti'],trans_mat = [1,1,1],dim_1=1,fast=False,cal_c_ov_a=False,origin_atm=['Pb','Sr']):
         self.proj_dir=proj_dir
         self.cntr_at=cntr_at
         self.dim_1=dim_1
@@ -404,25 +404,25 @@ class Get_Pol():
                 self.cntr_indxs.append(atm_indx)
         cutof_dic = {}
         ABC_SL = self.Str_ref.cell.cellpar()[0:3]
-        ABC_SL = [ABC_SL[0]/self.trans_mat[0],ABC_SL[1]/self.trans_mat[1],ABC_SL[2]/self.trans_mat[2]] 
+        ABC_UC = [ABC_SL[0]/self.trans_mat[0],ABC_SL[1]/self.trans_mat[1],ABC_SL[2]/self.trans_mat[2]] 
         if 'Ti' in self.cntr_at:
             self.wght = {'O':1/2,'Ba':1/8,'Sr':1/8,'Pb':1/8,'Ti':1,'Ca':1/8} 
             self.ref_atm = 1
-            cutof_dic['Ti'] = ABC_SL[0]/2 - 0.5
-            cutof_dic['Ba'] = ABC_SL[0]/2 - 0.5 + 0.1  #self.Str_ref.get_distance(1,0)-cutof_dic['Ti']+0.1
-            cutof_dic['Sr'] = ABC_SL[0]/2 - 0.5 + 0.1  #self.Str_ref.get_distance(1,0)-cutof_dic['Ti']+0.1
-            cutof_dic['Pb'] = ABC_SL[0]/2 - 0.5 + 0.1  #self.Str_ref.get_distance(1,0)-cutof_dic['Ti']+0.1
-            cutof_dic['O'] = ABC_SL[0]/2 - 0.5 + 0.1  #self.Str_ref.get_distance(1,2)-cutof_dic['Ti']+0.1
-            cutof_dic['Ca'] = ABC_SL[0]/2 - 0.5 + 0.1  #self.Str_ref.get_distance(1,2)-cutof_dic['Ti']+0.1
+            cutof_dic['Ti'] = ABC_UC[0]/2 - 0.5
+            cutof_dic['Ba'] = ABC_UC[0]/2 - 0.5 + 0.1  #self.Str_ref.get_distance(1,0)-cutof_dic['Ti']+0.1
+            cutof_dic['Sr'] = ABC_UC[0]/2 - 0.5 + 0.1  #self.Str_ref.get_distance(1,0)-cutof_dic['Ti']+0.1
+            cutof_dic['Pb'] = ABC_UC[0]/2 - 0.5 + 0.1  #self.Str_ref.get_distance(1,0)-cutof_dic['Ti']+0.1
+            cutof_dic['O'] = ABC_UC[0]/2 - 0.5 + 0.1  #self.Str_ref.get_distance(1,2)-cutof_dic['Ti']+0.1
+            cutof_dic['Ca'] = ABC_UC[0]/2 - 0.5 + 0.1  #self.Str_ref.get_distance(1,2)-cutof_dic['Ti']+0.1
         else: # self.cntr_at in ['Pb','Ba','Ca']:
             self.wght = {'O':1/4,'Ba':1,'Sr':1,'Pb':1,'Ti':1/8,'Ca':1} 
             self.ref_atm = 0
-            cutof_dic['Ti'] = ABC_SL[0]/2 - 0.5 + 0.1  #
-            cutof_dic['Ba'] = ABC_SL[0]/2 - 0.5 #self.Str_ref.get_distance(1,0)-cutof_dic['Ti']+0.1
-            cutof_dic['Sr'] = ABC_SL[0]/2 - 0.5 #self.Str_ref.get_distance(1,0)-cutof_dic['Ti']+0.1
-            cutof_dic['Pb'] = ABC_SL[0]/2 - 0.5 #self.Str_ref.get_distance(1,0)-cutof_dic['Ti']+0.1
-            cutof_dic['O'] =  ABC_SL[0]/2 - 0.5 + 0.1 #self.Str_ref.get_distance(1,2)-cutof_dic['Ti']+0.1
-            cutof_dic['Ca'] = ABC_SL[0]/2 - 0.5 + 0.1 # self.Str_ref.get_distance(1,2)-cutof_dic['Ti']+0.1
+            cutof_dic['Ti'] = ABC_UC[0]/2 - 0.5 + 0.1  #
+            cutof_dic['Ba'] = ABC_UC[0]/2 - 0.5 #self.Str_ref.get_distance(1,0)-cutof_dic['Ti']+0.1
+            cutof_dic['Sr'] = ABC_UC[0]/2 - 0.5 #self.Str_ref.get_distance(1,0)-cutof_dic['Ti']+0.1
+            cutof_dic['Pb'] = ABC_UC[0]/2 - 0.5 #self.Str_ref.get_distance(1,0)-cutof_dic['Ti']+0.1
+            cutof_dic['O'] =  ABC_UC[0]/2 - 0.5 + 0.1 #self.Str_ref.get_distance(1,2)-cutof_dic['Ti']+0.1
+            cutof_dic['Ca'] = ABC_UC[0]/2 - 0.5 + 0.1 # self.Str_ref.get_distance(1,2)-cutof_dic['Ti']+0.1
         sccuof = [cutof_dic[sym] for sym in self.chmsym]        
         self.mnl = NeighborList(sccuof,sorted=False,self_interaction = False,bothways=True)
         self.mnl.update(self.Str_ref)
@@ -449,10 +449,9 @@ class Get_Pol():
                 pol_mat[a,b,c,:] += self.wght[self.chmsym[j]]*np.dot(disp_proj[j],self.BEC_ref[j])   
                 if self.cal_c_ov_a and self.chmsym[j] in self.origin_atm:
                     pos_c_ov_a.append(pos_final_strc[j]+(offset*ABC_SL0))
-            temp_ca_data = self.get_c_ov_a(pos_c_ov_a,ABC_UC)
-            self.c_ov_a_data[a,b,c,:] = [temp_ca_data[0],temp_ca_data[1],temp_ca_data[2],temp_ca_data[2]/(0.5*temp_ca_data[0]+0.5*temp_ca_data[1])]
-            # self.c_ov_a[a,b,c] = 
             if self.cal_c_ov_a:
+                temp_ca_data = self.get_c_ov_a(pos_c_ov_a,ABC_UC)
+                self.c_ov_a_data[a,b,c,:] = [temp_ca_data[0],temp_ca_data[1],temp_ca_data[2],temp_ca_data[2]/(0.5*temp_ca_data[0]+0.5*temp_ca_data[1])]                
                 v0 = abs(self.c_ov_a_data[a,b,c,0]*self.c_ov_a_data[a,b,c,1]*self.c_ov_a_data[a,b,c,2])
             pol_mat[a,b,c,:] = 16*pol_mat[a,b,c,:]/v0       
         return(pol_mat)
@@ -510,7 +509,7 @@ def plot_3d_pol_vectrs_pol(xml_file,NC_FILE_STR,dim,xml_file2=None,NC_stp=-1,Fas
         mlab.pipeline.vector_cut_plane(src, mask_points=1, scale_factor=1)
     mlab.show() 
           
-def get_pol_vectrs(xml_file,NC_FILE_STR,dim,xml_file2=None,NC_stp=-1,dim_1=0,Fast_map=True,cntr_at = ['Ti'],plot_dire=[1,1,1],cal_c_ov_a=True,origin_atm=['Pb','Sr'],ave_str=False,length_mul=4):
+def get_pol_vectrs(xml_file,NC_FILE_STR,dim,xml_file2=None,NC_stp=-1,dim_1=0,Fast_map=True,cntr_at = ['Ti'],plot_dire=[1,1,1],cal_c_ov_a=False,origin_atm=['Pb','Sr'],ave_str=False,length_mul=4):
     myxml1=xml_sys(xml_file)
     myxml1.get_atoms()
     # atm_pos1=myxml1.atm_pos
