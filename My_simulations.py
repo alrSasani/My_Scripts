@@ -277,7 +277,7 @@ def get_xml_files(DDB,modle1,ngqpt,ncell=[1,1,1],prt_dipdip=1,output_name='Str',
     anh_xml1 = f'{sim_path}/{Anh_name}' 
     return(har_xml1,anh_xml1)   
 
-def relax_NC_strc(Har_fle,Anh_fle,rlx_opt=2,dipdip=1,NC_FILE=None,NC_Step=-1,avg_nc_str=False,ngqpt=[2,2,2],ncell=[1,1,1],prefix='Strc',EXEC='MB_16Jun',NCPU=1,sim_path='./'):
+def relax_NC_strc(Har_fle,Anh_fle,rlx_opt=2,dipdip=1,efield=[0,0,0],NC_FILE=None,NC_Step=-1,avg_nc_str=False,ngqpt=[2,2,2],ncell=[1,1,1],prefix='Strc',EXEC='MB_16Jun',NCPU=1,sim_path='./'):
     my_sim_rlx = MB_sim(EXEC, Har_fle, Anhar_coeffs=Anh_fle, ngqpt=ngqpt, ncell= ncell, ncpu=NCPU, test_set='no',prefix = prefix)
     my_sim_rlx.rlx_dta()
     os.makedirs(sim_path,exist_ok=True)
@@ -285,20 +285,23 @@ def relax_NC_strc(Har_fle,Anh_fle,rlx_opt=2,dipdip=1,NC_FILE=None,NC_Step=-1,avg
     os.chdir(sim_path)
     my_sim_rlx.inpt['optcell'] = rlx_opt
     my_sim_rlx.inpt['dipdip'] = dipdip
+    my_sim_rlx.inpt['efield'] = efield
     my_sim_rlx.inpt['ntime'] = 500
-    my_sim_rlx.set_prim_strc_nc(NC_FILE,step = NC_Step,avg=avg_nc_str)
-    my_sim_rlx.write_hist()
+    if NC_FILE is not None:
+        my_sim_rlx.set_prim_strc_nc(NC_FILE,step = NC_Step,avg=avg_nc_str)
+        my_sim_rlx.write_hist()
     my_sim_rlx.write_run_data()        
     os.system(f'sh MB_run.sh')
 
 
 def MC_SIMS(Har_fle,Anh_fle,rlx_opt=2,dipdip=1,temperature=1,ndym=2000,nctime=40,hmctt=40,NC_FILE=None,NC_Step=-1,
-            avg_nc_str=False,ngqpt=[2,2,2],ncell=[1,1,1],prefix='Strc',EXEC='MB_16Jun',NCPU=1,sim_path='./'):
+            avg_nc_str=False,ngqpt=[2,2,2],ncell=[1,1,1],efield=[0,0,0],prefix='Strc',EXEC='MB_16Jun',NCPU=1,sim_path='./'):
     my_sim = MB_sim(EXEC, Har_fle, Anhar_coeffs=Anh_fle, ngqpt=ngqpt, ncell= ncell, ncpu=NCPU, test_set='no',prefix = prefix)
     my_sim.MC_dta(ndym,  restartxf=0, optcell=rlx_opt, nctime=nctime, hmctt=hmctt)
     print('temperature = ',temperature)
     my_sim.inpt['temperature'] = [temperature]
     my_sim.inpt['dipdip'] = dipdip
+    my_sim.inpt['efield'] = efield
     sim_path = sim_path 
     os.makedirs(sim_path,exist_ok=True)    
     os.chdir(sim_path)  

@@ -410,7 +410,6 @@ def write_anh_xml(coeff,trms,fout):
     output = open(fout, 'w')
     output.write('<?xml version="1.0" ?>\n')
     output.write('<Heff_definition>\n')
-
     for i, key in enumerate(coeff.keys()):
         output.write('  <coefficient number="{}" value="{}" text="{}">\n'.format(
             i+1, coeff[key]['value'], coeff[key]['text'],))
@@ -432,7 +431,7 @@ def write_anh_xml(coeff,trms,fout):
                     trms[i][j][k]['weight']))
                 k = -1
             for l in range(int(trms[i][j][-1]['strain'])):
-                output.write('      <strain power="{}" voigt="{}"/>\n'.format(
+                output.write('      <strain power="{}" voigt="{}"></strain>\n'.format(
                     trms[i][j][k+l+1]['power'], trms[i][j][k+l+1]['voigt']))
             output.write('    </term>\n')
         output.write('  </coefficient>\n')
@@ -448,7 +447,9 @@ def write_sys_xml(dta,out_put):
     SC_BEC = dta['SC_BEC']
     SC_atoms_pos = dta['SC_atoms_pos']
     SC_FC = dta['SC_local_FC']
-    
+    atom = dta['atom']
+    chem_sym = atom.get_chemical_symbols()
+    write_sym = True #dta['write_sym'] 
     has_tot_FC = dta['has_tot_FC']
     SC_CorForc = dta['SC_corr_forc']
     strain = dta['strain']
@@ -468,10 +469,12 @@ def write_sys_xml(dta,out_put):
     out_xml.write(
         '  <elastic units="hartree">\n  {}  </elastic>\n'.format(tools.to_text(SCL_elas)))
     for ii in my_atm_list:
-
-        out_xml.write('  <atom mass="  {}" massunits="atomicmassunit">\n    <position units="bohrradius">\n   {}</position>\n    <borncharge units="abs(e)">\n  {}</borncharge>\n  </atom>\n'.format(
-            atom_mass[ii], tools.one_text(SC_atoms_pos[ii, :]), tools.to_text(SC_BEC[ii])))
-
+        if write_sym:
+            out_xml.write('<atom element= "{}"   mass="  {}" massunits="atomicmassunit">\n    <position units="bohrradius">\n   {}</position>\n    <borncharge units="abs(e)">\n  {}</borncharge>\n  </atom>\n'.format(
+                chem_sym[ii],atom_mass[ii], tools.one_text(SC_atoms_pos[ii, :]), tools.to_text(SC_BEC[ii])))
+        else:
+            out_xml.write('  <atom mass="  {}" massunits="atomicmassunit">\n    <position units="bohrradius">\n   {}</position>\n    <borncharge units="abs(e)">\n  {}</borncharge>\n  </atom>\n'.format(
+                atom_mass[ii], tools.one_text(SC_atoms_pos[ii, :]), tools.to_text(SC_BEC[ii])))
     for key in keys:
         if key in (SC_FC.keys()):
             out_xml.write(

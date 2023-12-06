@@ -199,6 +199,7 @@ class Har_sc_maker():
 
         SCL_elas = ((self.xml.ela_cons)*SC_num_Uclls)
         xml_dta['keys'] = keys
+        xml_dta['atom'] = self.mySC
         xml_dta['SCL_elas'] = SCL_elas
         xml_dta['SCL_ref_energy'] = SC_num_Uclls*self.xml.ref_eng
         xml_dta['SCL_lat'] = self.mySC.get_cell()/Bohr
@@ -207,6 +208,7 @@ class Har_sc_maker():
         xml_dta['SC_BEC'] = self.mySC.get_array('BEC') 
         xml_dta['SC_atoms_pos'] = self.mySC.get_positions()/Bohr
         xml_dta['SC_local_FC'] = self.Fin_loc_FC
+        xml_dta['write_sym'] = False
         # strain phonon coupling term. 
         # TODO: rename it to SC_str_ph
         xml_dta['SC_corr_forc'] = self.mySC.get_array('str_ph')   

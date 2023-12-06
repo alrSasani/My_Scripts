@@ -12,6 +12,7 @@ from phonopy.units import AbinitToTHz
 from phonopy.phonon.band_structure import get_band_qpoints_and_path_connections
 from phonopy.structure.symmetry import symmetrize_borns_and_epsilon
 import ase
+from ase.data import atomic_numbers 
 from ase import build, Atoms
 from ase.units import Ha, Bohr
 from ase.io import write, read
@@ -21,6 +22,7 @@ from matplotlib.pyplot import figure
 import matplotlib.pyplot as plt
 from SC_xml_potential import *
 from os.path import exists
+import my_supercells as my_SClls
 #from mync import *
 import mync
 #from pyDFTutils.perovskite import frozen_mode as FM
@@ -34,9 +36,11 @@ from My_simulations import MB_sim
 #from My_ddb import ddb_reader
 #import My_ddb
 thz_cm = 33.356/1.374673102
+from collections import OrderedDict
 Hatoev=Ha/Bohr
 import time
 import xml_io
+import missfit_terms
 
 def get_dist_strc(SL_atms,with_bloch_comp,dim,atom_to_disp,mat_id_To_displace,ref_atm_sym,STRC_inv_uc_cell,dom_const,my_dic):
     SC_dist = make_supercell(SL_atms, dim)
@@ -56,7 +60,8 @@ def get_dist_strc(SL_atms,with_bloch_comp,dim,atom_to_disp,mat_id_To_displace,re
 
                 if cell_atm[0] == all_cells[0] or cell_atm[0] == int(a_dir/2):
                     # if cell_atm[0] == all_cells[0]:
-                    new_pos.append([atm_pos[0],atm_pos[1]+dom_const[1]*my_dic[1],atm_pos[2]]) 
+                    # new_pos.append([atm_pos[0],atm_pos[1]+dom_const[1]*my_dic[1],atm_pos[2]]) 
+                    new_pos.append([atm_pos[0],atm_pos[1],atm_pos[2]]) 
                     
                     # if cell_atm[0] == int(a_dir/2):
                     #     new_pos.append([atm_pos[0],atm_pos[1]+dom_const[1]*my_dic[1],atm_pos[2]]) 
@@ -185,7 +190,81 @@ def my_timer(my_Func):
 #     plt.rc('legend', fontsize=11)    # legend fontsize
 #     plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
 
+def ase_to_sclup(atoms,SC_MAT,output='sclup_strc.out',SCLL_fnl_str=None):  
+    tag_atm = []
+    SC_MAT = np.array(SC_MAT)
+    for i in range(len(atoms)):
+        tag_atm.append(i+1)
+    atoms.set_array('tag', np.array(tag_atm))
+    super_cell,lat_points = my_SClls.make_supercell(atoms, SC_MAT, if_return_lp=True)
+    chem_sym = atoms.get_chemical_symbols()
+    num_atom = len(chem_sym)
+    type_atom = len(set(chem_sym))
+    dict_typ = OrderedDict()
+    isym = 0
+    typ_list = ''
+    for sym in chem_sym:
+        if sym not in dict_typ.keys():
+            isym += 1
+            dict_typ[sym] = isym
+            typ_list += f'{sym}        ' 
+    my_latice_point = []
+    for my_lp in lat_points:
+        for i in range(len(atoms)):
+            tmp_lp = list(map(int,np.dot(SC_MAT,my_lp)))
+            my_latice_point.append(tmp_lp)
+    out_pt = open(output,'w')
+    out_pt.write(f'    {int(SC_MAT[0,0])}    {int(SC_MAT[1,1])}    {int(SC_MAT[2,2])}\n')
+    out_pt.write(f'    {num_atom}    {type_atom}\n')
+    out_pt.write(typ_list+'\n')
+    SC_cell = super_cell.get_cell()
+    if SCLL_fnl_str == None:
+        for i in range(3):
+            for j in range(3):
+                out_pt.write(f'    {SC_cell[i,j]/Bohr:0.9E}')
+                position_to_write = super_cell.get_positions()
+    else:
+        scl_fnl = SCLL_fnl_str.get_cell()
+        strain_mat = np.dot(np.linalg.inv(SC_cell),scl_fnl)-np.eye(3)
+        voigt_str = missfit_terms.get_strain(strain=strain_mat)
+        final_strc = get_mapped_strcs(SCLL_fnl_str, super_cell)
+        scld_position_diff = final_strc.get_scaled_positions()-super_cell.get_scaled_positions()
+        position_to_write = np.dot(scld_position_diff,SC_cell)
+        for strn in voigt_str:
+            out_pt.write(f'    {strn:0.9E}')                 
+    out_pt.write('\n')
+    symbls_SC = super_cell.get_chemical_symbols()
+    tag_atom = super_cell.get_array('tag')
+    for ipos,pos in enumerate(position_to_write):
+        out_pt.write(f'    {my_latice_point[ipos][0]}    {my_latice_point[ipos][1]}    {my_latice_point[ipos][2]}    {tag_atom[ipos]}    {dict_typ[symbls_SC[ipos]]}    {pos[0]/Bohr:0.9E}    {pos[1]/Bohr:0.9E}    {pos[2]/Bohr:0.9E} \n')
+    out_pt.close()
 
+def sclup_to_ase(sclup_file):
+    inpt_f = open(sclup_file,'r')
+    l = inpt_f.readline().split()
+    SC_mat = list(map(int,l))
+    l = inpt_f.readline().split()
+    dta = list(map(int,l))
+    num_atom_UC,atm_typ = dta[0],dta[1]
+    chem_sym = inpt_f.readline().split()
+    cell_strc = np.array(list(map(float,inpt_f.readline().split()))).reshape(3,3)*Bohr
+    num_atm = num_atom_UC*(SC_mat[0]*SC_mat[1]*SC_mat[2])
+    pos = []
+    sym = []
+    l = inpt_f.readline().split()
+    natm_tmp = 0
+    while l:  
+        natm_tmp += 1      
+        dta = list(map(float,l))
+        pos.append([dta[5]*Bohr,dta[6]*Bohr,dta[7]*Bohr])
+        sym.append(chem_sym[int(dta[4])-1])
+        l = inpt_f.readline().split()
+    numbers = [atomic_numbers[i] for i in sym]
+    if natm_tmp != num_atm:
+        raise('sclup_strc_to_atoms : Number of atoms are different')
+    atoms = Atoms(numbers=numbers,positions=pos, cell=cell_strc, pbc=True)
+    return(atoms)
+ 
 class Get_Pol():
     def __init__(self,Str_ref,BEC_ref,proj_dir = [1,1,1],cntr_at = ['Ti'],trans_mat = [1,1,1],dim_1=1,fast=False):
         self.wght = {'O':1/6,'Ba':1/8,'Sr':1/8,'Pb':1/8,'Ti':1} 
@@ -293,7 +372,6 @@ def get_BEC_SCLL(SCLL,SCLL_MAT,har_xml):
     BEC_SCLL = []
     for i in indexes:   #FIXME
         BEC_SCLL.append(BEC[i%(len(UC_atms))])
-
     return(BEC_SCLL,eps_inf)
 
 def eigvec_eigdis(eigvec,atoms):
@@ -319,7 +397,6 @@ def get_image_dta(nc_path,istep=-1):
         atms_n = Atoms(numbers=atomic_number,cell=RSET_f_Bhr[ii]*Bohr,scaled_positions=xred_f[ii],pbc=True)
         #write(f'POSCAR_{ii}',atms_n,format='vasp')
         image_atoms.append(atms_n) 
-
     return(image_atoms,etotal) 
 
 def eigvec_to_eigdis(eigvec,atoms):
@@ -473,21 +550,6 @@ def my_make_SL(a1,a2):
     numbers_SL= [*numbers1, *numbers2]
     my_SL=Atoms(numbers=numbers_SL,positions=car_SL, cell=cell_SL, pbc=True)
     return(my_SL)
-
-# def write_SL_pot(har_xml1,anh_xml1,SC_mat1,har_xml2,anh_xml2,SC_mat2,str_str=0,pordc_str_trms=True):
-#     mdl=P_interface_xmls.har_interface(har_xml1,SC_mat1,har_xml2,SC_mat2)
-#     mdl.reshape_FCDIC()
-#     mdl.write_xml(f'Har_int_{SC_mat1[2][2]}{SC_mat2[2][2]}.xml',asr=0,asr_chk=0)
-#     my_intr = P_interface_xmls.anh_intrface(har_xml1,anh_xml1,SC_mat1,har_xml2,anh_xml2,SC_mat2,pordc_str_trms)
-#     my_intr.wrt_anxml(f'Anh_intr{SC_mat1[2][2]}{SC_mat2[2][2]}.xml',str_str)
-
-def write_SC_pot(my_harf,my_Anhf,scll,my_atoms,har_out,anh_out):
-    sc_maker=my_sc_maker(my_harf,scll)
-    sc_maker.reshape_FCDIC(my_atoms)
-    sc_maker.write_xml(har_out)
-    anh_SCxml=anh_scl(my_harf,my_Anhf)
-    anh_SCxml.SC_trms(my_atoms,scll)
-    anh_SCxml.wrt_anxml(anh_out)
 
 def ref_SL(atm_1,SC_mat1,atm_2,SC_mat2):
     tmp_SC1=make_supercell(atm_1,SC_mat2)

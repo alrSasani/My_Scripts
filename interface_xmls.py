@@ -319,6 +319,7 @@ class Har_interface:
             xml_dta['has_tot_FC'] = self.has_tot_FC 
             keys = self.Fin_loc_FC.keys()
         xml_dta['keys'] = keys
+        xml_dta['atom'] = ref_cell
         xml_dta['SCL_elas'] = SCL_elas
         xml_dta['SCL_ref_energy'] =ref_eng
         xml_dta['SCL_lat'] = ref_cell.get_cell()/Bohr 
@@ -329,6 +330,7 @@ class Har_interface:
         xml_dta['SC_local_FC'] = self.Fin_loc_FC
         xml_dta['SC_corr_forc'] = str_ph
         xml_dta['strain'] = self.xmls_objs['0'].strain
+        xml_dta['write_sym'] = True
         xml_dta['my_atm_list'] = range(len(ref_cell.get_masses()))
         xml_io.write_sys_xml(xml_dta,out_put)
 
