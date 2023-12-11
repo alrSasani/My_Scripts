@@ -17,8 +17,8 @@ from ase.io import write
 # thz_cm = 33.356/1.374673102
 # import copy
 from ase.build import stack
-import xml_io  # xml_io.xml_anha_reader
-import tools
+import  My_Scripts.xml_io as  xml_io # xml_io.xml_anha_reader
+import  My_Scripts.tools as tools
 
 ###########################################################
 

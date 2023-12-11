@@ -1,6 +1,6 @@
 import spglib as spg
 from os.path import exists
-import mync
+from My_Scripts import mync
 import os
 import sys
 sys.path.append("/home/alireza/CODES/My_scr")
@@ -277,7 +277,7 @@ def get_xml_files(DDB,modle1,ngqpt,ncell=[1,1,1],prt_dipdip=1,output_name='Str',
     anh_xml1 = f'{sim_path}/{Anh_name}' 
     return(har_xml1,anh_xml1)   
 
-def relax_NC_strc(Har_fle,Anh_fle,rlx_opt=2,dipdip=1,efield=[0,0,0],NC_FILE=None,NC_Step=-1,avg_nc_str=False,ngqpt=[2,2,2],ncell=[1,1,1],prefix='Strc',EXEC='MB_16Jun',NCPU=1,sim_path='./'):
+def relax_NC_strc(Har_fle,Anh_fle,rlx_opt=2,dipdip=1,efield=[0,0,0],NC_FILE=None,NC_Step=-1,avg_nc_str=False,ngqpt=[4,4,4],ncell=[1,1,1],prefix='Strc',EXEC='MB_16Jun',NCPU=1,sim_path='./'):
     my_sim_rlx = MB_sim(EXEC, Har_fle, Anhar_coeffs=Anh_fle, ngqpt=ngqpt, ncell= ncell, ncpu=NCPU, test_set='no',prefix = prefix)
     my_sim_rlx.rlx_dta()
     os.makedirs(sim_path,exist_ok=True)
@@ -295,7 +295,7 @@ def relax_NC_strc(Har_fle,Anh_fle,rlx_opt=2,dipdip=1,efield=[0,0,0],NC_FILE=None
 
 
 def MC_SIMS(Har_fle,Anh_fle,rlx_opt=2,dipdip=1,temperature=1,ndym=2000,nctime=40,hmctt=40,NC_FILE=None,NC_Step=-1,
-            avg_nc_str=False,ngqpt=[2,2,2],ncell=[1,1,1],efield=[0,0,0],prefix='Strc',EXEC='MB_16Jun',NCPU=1,sim_path='./'):
+            avg_nc_str=False,ngqpt=[4,4,4],ncell=[1,1,1],efield=[0,0,0],prefix='Strc',EXEC='MB_16Jun',NCPU=1,sim_path='./'):
     my_sim = MB_sim(EXEC, Har_fle, Anhar_coeffs=Anh_fle, ngqpt=ngqpt, ncell= ncell, ncpu=NCPU, test_set='no',prefix = prefix)
     my_sim.MC_dta(ndym,  restartxf=0, optcell=rlx_opt, nctime=nctime, hmctt=hmctt)
     print('temperature = ',temperature)

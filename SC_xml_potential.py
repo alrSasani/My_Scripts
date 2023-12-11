@@ -6,9 +6,9 @@ from math import ceil
 from ase import Atoms
 from ase.units import Bohr
 from ase.build import make_supercell,sort
-import xml_io
-import missfit_terms
-import  tools 
+from  My_Scripts import xml_io
+from  My_Scripts import missfit_terms
+import  My_Scripts.tools  as tools
 import ase
 
 ###############################################################################

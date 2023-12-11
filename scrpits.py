@@ -1,12 +1,12 @@
 """
 Main script to make supercells and superlattice models. 
 """
-import SC_xml_potential as SC_pot
+from My_Scripts import SC_xml_potential as SC_pot
 import numpy as np
-import interface_xmls
-import xml_io
-from My_simulations import get_xml_files
-import tools
+import My_Scripts.interface_xmls as interface_xmls
+from My_Scripts import xml_io
+from My_Scripts.My_simulations import get_xml_files
+from My_Scripts import tools 
 import os
 from ase.build import sort
 
@@ -138,14 +138,10 @@ def SL_MAKER(DDB1,modle1,ncell1,DDB2,modle2,ncell2,ngqptm,sim_path1=None,sim_pat
     
     print('making SL Pot')
 
-    if xml_cell1==None:
-        xml_cell1 = [ncell1[0],ncell1[1],ncell1[2]+ncell2[2]]
-    else:
-        xml_cell1=xml_cell1
-    if xml_cell2==None:
-        xml_cell2 = [ncell1[0],ncell1[1],ncell1[2]+ncell2[2]]
-    else:
-        xml_cell2=xml_cell2
+
+    xml_cell1 = [ncell1[0],ncell1[1],ncell1[2]+ncell2[2]]  if  xml_cell1 is None else  xml_cell1  #### XML_CELL ***
+    xml_cell2 = [ncell2[0],ncell2[1],ncell1[2]+ncell2[2]]  if  xml_cell2 is None else  xml_cell2  #### XML_CELL ***
+
 
     if sim_path1 is None:
         cwd = os.getcwd()
@@ -155,7 +151,7 @@ def SL_MAKER(DDB1,modle1,ncell1,DDB2,modle2,ncell2,ngqptm,sim_path1=None,sim_pat
         cwd = os.getcwd()
         sim_path2 = f'{cwd}/M2'
 
-    Har_name = f'Har_xml_{xml_cell1[0]}{xml_cell1[1]}{xml_cell1[2]}'           
+    Har_name = f'Har_xml_{xml_cell1[0]}{xml_cell1[1]}{xml_cell1[2]}'              
     Anh_name = f'AnHar_xml_{xml_cell1[0]}{xml_cell1[1]}{xml_cell1[2]}'
 
     # SR_cd_dir = max(ngqpt1[0],ngqpt2[0])

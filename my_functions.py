@@ -20,27 +20,26 @@ from ase.build import make_supercell
 import spglib.spglib
 from matplotlib.pyplot import figure
 import matplotlib.pyplot as plt
-from SC_xml_potential import *
+# from SC_xml_potential import *
 from os.path import exists
-import my_supercells as my_SClls
-#from mync import *
-import mync
 #from pyDFTutils.perovskite import frozen_mode as FM
-from mpl_toolkits.mplot3d import axes3d
+# from mpl_toolkits.mplot3d import axes3d
 #import abipy
 #from abipy import abilab
 #from abipy.dfpt import converters as cnvtr
 from ase.neighborlist import NeighborList
-import SC_xml_potential as SCXML
-from My_simulations import MB_sim
 #from My_ddb import ddb_reader
 #import My_ddb
 thz_cm = 33.356/1.374673102
 from collections import OrderedDict
 Hatoev=Ha/Bohr
 import time
-import xml_io
-import missfit_terms
+import My_Scripts.SC_xml_potential as SCXML
+from My_Scripts.My_simulations import MB_sim
+import My_Scripts.my_supercells as my_SClls
+from My_Scripts import mync
+import  My_Scripts.xml_io as xml_io
+import  My_Scripts.missfit_terms as missfit_terms
 
 def get_dist_strc(SL_atms,with_bloch_comp,dim,atom_to_disp,mat_id_To_displace,ref_atm_sym,STRC_inv_uc_cell,dom_const,my_dic):
     SC_dist = make_supercell(SL_atms, dim)
@@ -59,10 +58,8 @@ def get_dist_strc(SL_atms,with_bloch_comp,dim,atom_to_disp,mat_id_To_displace,re
                 cell_atm = list(map(int,cell_atm))
 
                 if cell_atm[0] == all_cells[0] or cell_atm[0] == int(a_dir/2):
-                    # if cell_atm[0] == all_cells[0]:
-                    # new_pos.append([atm_pos[0],atm_pos[1]+dom_const[1]*my_dic[1],atm_pos[2]]) 
-                    new_pos.append([atm_pos[0],atm_pos[1],atm_pos[2]]) 
-                    
+                    new_pos.append([atm_pos[0],atm_pos[1]+dom_const[1]*my_dic[1],atm_pos[2]]) 
+                   
                     # if cell_atm[0] == int(a_dir/2):
                     #     new_pos.append([atm_pos[0],atm_pos[1]+dom_const[1]*my_dic[1],atm_pos[2]]) 
 

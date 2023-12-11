@@ -495,6 +495,8 @@ class hist_reader():
         sum_Rset=np.zeros((3,3))
         cntr = 0
         temp_atms0 = Atoms(numbers=numbers,positions=xcart[initial]*Bohr, cell=RSET[initial]*Bohr)
+        if initial == -1:
+            initial = len(xcart-1)
         for str_cntr in range(initial,len(xcart)):
             cntr+=1
             temp_atms = Atoms(numbers=numbers,positions=xcart[str_cntr]*Bohr, cell=RSET[str_cntr]*Bohr)

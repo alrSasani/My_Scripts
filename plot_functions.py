@@ -8,7 +8,7 @@ import xml.etree.ElementTree as ET
 from ase.data import atomic_masses
 from mayavi import mlab
 from ase.io import write
-import mync
+import My_Scripts.mync as mync
 import matplotlib.pyplot as plt
 from ase.build import stack
 
@@ -536,7 +536,7 @@ def get_pol_vectrs(xml_file,NC_FILE_STR,dim,xml_file2=None,NC_stp=-1,dim_1=0,Fas
         final_Str_Hist = mync.get_NC_str(NC_FILE_STR,stp=NC_stp)
     Prim_Str_Hist = Atoms(numbers=ref_str.get_atomic_numbers(),scaled_positions=ref_str.get_scaled_positions(), cell=final_Str_Hist.get_cell(), pbc=True)
     my_pol = Get_Pol(Prim_Str_Hist,BEC,proj_dir = plot_dire,cntr_at = cntr_at,trans_mat = dim,dim_1=dim_1,fast=Fast_map,cal_c_ov_a=cal_c_ov_a,origin_atm=origin_atm)
-    write('POSCAR_Finall_Strc_Pol',final_Str_Hist,vasp5=True,sort=True)
+    # write('POSCAR_Finall_Strc_Pol',final_Str_Hist,vasp5=True,sort=True)
     pol_mat = my_pol.get_pol_mat(final_Str_Hist)
 
     if cal_c_ov_a==True:
