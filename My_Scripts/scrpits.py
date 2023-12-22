@@ -178,7 +178,7 @@ def SL_MAKER(DDB1,modle1,ncell1,DDB2,modle2,ncell2,ngqptm,sim_path1=None,sim_pat
     # the atoms of the primitive cell 2 after sorting
     trans_atms2 = sort(my_atms2,tags = my_atm_list_tmp) 
 
-
+    avg_cell = get_avg_cell_SL(har_xml1,ncell1[2],har_xml2,ncell2[2])
     # get the reference cell of the superlattice model
     if ref_cell == 'M1':
         print(f'{my_atms1.get_chemical_formula()} as refrence')
@@ -188,7 +188,7 @@ def SL_MAKER(DDB1,modle1,ncell1,DDB2,modle2,ncell2,ngqptm,sim_path1=None,sim_pat
         ref_atoms_cell = my_atms2.get_cell()
     elif ref_cell == 'avg':
         print(f'aerage cells of {my_atms1.get_chemical_formula()} and {my_atms2.get_chemical_formula()} as refrence')
-        ref_atoms_cell = get_avg_cell_SL(har_xml1,ncell1[2],har_xml2,ncell2[2])
+        ref_atoms_cell = avg_cell
 
     print('refrence cell in SL is: \n',ref_atoms_cell)
 
@@ -227,7 +227,7 @@ def SL_MAKER(DDB1,modle1,ncell1,DDB2,modle2,ncell2,ngqptm,sim_path1=None,sim_pat
 
     SL_atms = har_xml.ref_cell 
     if if_return_atom:
-        return(SL_atms,my_atms1,trans_atms2)
+        return(SL_atms,my_atms1,trans_atms2,avg_cell)
                       
 
 
