@@ -9,6 +9,7 @@ from ase.data import atomic_masses
 from mayavi import mlab
 from ase.io import write
 import My_Scripts.mync as mync
+from My_Scripts import xml_io
 import matplotlib.pyplot as plt
 from ase.build import stack
 
@@ -510,7 +511,7 @@ def plot_3d_pol_vectrs_pol(xml_file,NC_FILE_STR,dim,xml_file2=None,NC_stp=-1,Fas
     mlab.show() 
           
 def get_pol_vectrs(xml_file,NC_FILE_STR,dim,xml_file2=None,NC_stp=-1,dim_1=0,Fast_map=True,cntr_at = ['Ti'],plot_dire=[1,1,1],cal_c_ov_a=False,origin_atm=['Pb','Sr'],ave_str=False,length_mul=4):
-    myxml1=xml_sys(xml_file)
+    myxml1=xml_io.Xml_sys_reader(xml_file)
     myxml1.get_atoms()
     # atm_pos1=myxml1.atm_pos
     myxml1.get_ase_atoms()
@@ -520,7 +521,7 @@ def get_pol_vectrs(xml_file,NC_FILE_STR,dim,xml_file2=None,NC_stp=-1,dim_1=0,Fas
     if xml_file2 is not None:
         if dim_1==0:
             raise 'dim_1 should be provided for xml 2'
-        myxml2=xml_sys(xml_file2)
+        myxml2=xml_io.Xml_sys_reader(xml_file2)
         myxml2.get_atoms()
         myxml2.get_ase_atoms()
         ref_str_2 = my_atms1.repeat([1,1,dim[2]-dim_1])
@@ -545,7 +546,7 @@ def get_pol_vectrs(xml_file,NC_FILE_STR,dim,xml_file2=None,NC_stp=-1,dim_1=0,Fas
         return(pol_mat)
 
 def plot_3d_pol_vectrs_dis(xml_file,NC_FILE_STR,dim,xml_file2=None,NC_stp=-1,Fast_map=True,plot_3d=False,cntr_at = ['Ti'],plot_dire=[1,1,1],ave_str=False,length_mul=4):
-    myxml1=xml_sys(xml_file)
+    myxml1=xml_io.Xml_sys_reader(xml_file)
     myxml1.get_atoms()
     atm_pos1=myxml1.atm_pos
     myxml1.get_ase_atoms()
@@ -553,7 +554,7 @@ def plot_3d_pol_vectrs_dis(xml_file,NC_FILE_STR,dim,xml_file2=None,NC_stp=-1,Fas
     ref_str = make_supercell(my_atms1,[[dim[0],0,0],[0,dim[1],0],[0,0,dim[2]]]) 
 
     if xml_file2 is not None:
-        myxml2=xml_sys(xml_file2)
+        myxml2=xml_io.Xml_sys_reader(xml_file2)
         myxml2.get_atoms()
         atm_pos2=myxml2.atm_pos
     else:
@@ -601,7 +602,7 @@ def plot_3d_pol_vectrs_dis(xml_file,NC_FILE_STR,dim,xml_file2=None,NC_stp=-1,Fas
     plt.show()  
 
 def get_pol(xml_file,NC_FILE_STR,dim,xml_file2=None,NC_stp=-1,Fast_map=True,cntr_at = ['Ti'],plot_dire=[1,1,1],ave_str=False):
-    myxml1=xml_sys(xml_file)
+    myxml1=xml_io.Xml_sys_reader(xml_file)
     myxml1.get_atoms()
     atm_pos1=myxml1.atm_pos
     myxml1.get_ase_atoms()
@@ -609,7 +610,7 @@ def get_pol(xml_file,NC_FILE_STR,dim,xml_file2=None,NC_stp=-1,Fast_map=True,cntr
     ref_str = make_supercell(my_atms1,[[dim[0],0,0],[0,dim[1],0],[0,0,dim[2]]]) 
 
     if xml_file2 is not None:
-        myxml2=xml_sys(xml_file2)
+        myxml2=xml_io.Xml_sys_reader(xml_file2)
         myxml2.get_atoms()
         atm_pos2=myxml2.atm_pos
     else:

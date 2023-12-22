@@ -3,7 +3,11 @@ import sys
 #sys.path.append("/home/alireza/CODES/My_scr")
 import numpy as np
 #from interface_xmls import *
+<<<<<<< HEAD:My_Scripts/my_functions.py
 #import interface_xmls
+=======
+# import interface_xmls
+>>>>>>> 06f68684216e875f47e2ca60df16f23f17f234ff:my_functions.py
 # import P_interface_xmls
 import phonopy
 from phonopy import Phonopy
@@ -41,14 +45,27 @@ from My_Scripts import mync
 import  My_Scripts.xml_io as xml_io
 import  My_Scripts.missfit_terms as missfit_terms
 
-def get_dist_strc(SL_atms,with_bloch_comp,dim,atom_to_disp,mat_id_To_displace,ref_atm_sym,STRC_inv_uc_cell,dom_const,my_dic):
+def get_dist_strc(SL_atms,with_bloch_comp,dim,atom_to_disp,mat_id_To_displace,ref_atm_sym,STRC_inv_uc_cell,dom_const,my_dic,wall_size=1):
     SC_dist = make_supercell(SL_atms, dim)
     chem_sym = SC_dist.get_chemical_symbols()
     tag_id = SC_dist.get_array('tag_id')
     a_dir = dim[0][0]
     new_pos = []
-    if with_bloch_comp:                                   
-        all_cells = list(range(a_dir))
+    
+    
+    if with_bloch_comp: 
+        dm_size = int((a_dir/2)-wall_size)
+        dm_size_0 = int((dm_size/2))
+        dm_size_l = dm_size-dm_size_0
+        dm_size_0_clls = list(range(0,dm_size_0))
+        dm_size_l_clls = list(range(a_dir-1,a_dir-dm_size_l-1,-1))
+        cell_dm_2 = list(range(dm_size_0+wall_size,dm_size_0+wall_size+dm_size))
+        wall_1 = list(range(dm_size_0,dm_size_0+wall_size))
+        wall_2 = list(range(dm_size_0+wall_size+dm_size,dm_size_0+2*wall_size+dm_size))
+        wall_cells = [*wall_1,*wall_2]
+        cell_dm_1 = [*dm_size_0_clls,*dm_size_l_clls]
+
+        # all_cells = list(range(a_dir))
         chem_sym = SC_dist.get_chemical_symbols()
         for atm_cnt, atm_pos in enumerate(SC_dist.get_positions()):
             if chem_sym[atm_cnt] in atom_to_disp and tag_id[atm_cnt][1]==mat_id_To_displace:
@@ -57,16 +74,17 @@ def get_dist_strc(SL_atms,with_bloch_comp,dim,atom_to_disp,mat_id_To_displace,re
                 cell_atm = np.dot((1/0.95)*STRC_inv_uc_cell, dists)
                 cell_atm = list(map(int,cell_atm))
 
-                if cell_atm[0] == all_cells[0] or cell_atm[0] == int(a_dir/2):
+                if cell_atm[0] in wall_cells:  #Wall part
                     new_pos.append([atm_pos[0],atm_pos[1]+dom_const[1]*my_dic[1],atm_pos[2]]) 
                    
                     # if cell_atm[0] == int(a_dir/2):
                     #     new_pos.append([atm_pos[0],atm_pos[1]+dom_const[1]*my_dic[1],atm_pos[2]]) 
 
-                elif cell_atm[0] in list(range(1,int(a_dir/2))):
+                elif cell_atm[0] in cell_dm_1:
                     new_pos.append([atm_pos[0],atm_pos[1],atm_pos[2]+dom_const[2]*my_dic[2]])
                 else:
                     new_pos.append([atm_pos[0],atm_pos[1],atm_pos[2]+my_dic[2]])
+
             else:
                 new_pos.append(atm_pos)
     else:
@@ -77,9 +95,9 @@ def get_dist_strc(SL_atms,with_bloch_comp,dim,atom_to_disp,mat_id_To_displace,re
                 cell_atm = np.dot((1/0.95)*STRC_inv_uc_cell, dists)
                 cell_atm = list(map(int,cell_atm))
                 if cell_atm[0] in list(range(0,int(a_dir/2))):
-                    new_pos.append([atm_pos[0],atm_pos[1],atm_pos[2]+dom_const[2]*my_dic[2]])
+                    new_pos.append([atm_pos[0]+dom_const[0]*my_dic[0],atm_pos[1]+dom_const[1]*my_dic[1],atm_pos[2]+dom_const[2]*my_dic[2]])
                 else:
-                    new_pos.append([atm_pos[0],atm_pos[1],atm_pos[2]+my_dic[2]])                        
+                    new_pos.append([atm_pos[0]+my_dic[0],atm_pos[1]+my_dic[1],atm_pos[2]+my_dic[2]])                        
             else:
                 new_pos.append(atm_pos)
     my_sl_distor = Atoms(numbers=SC_dist.get_atomic_numbers(),positions=new_pos, cell=SC_dist.get_cell(), pbc=True)
