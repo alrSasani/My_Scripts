@@ -496,16 +496,17 @@ class hist_reader():
         cntr = 0
         temp_atms0 = Atoms(numbers=numbers,positions=xcart[initial]*Bohr, cell=RSET[initial]*Bohr)
         if initial == -1:
-            initial = len(xcart-1)
-        for str_cntr in range(initial,len(xcart)):
-            cntr+=1
-            temp_atms = Atoms(numbers=numbers,positions=xcart[str_cntr]*Bohr, cell=RSET[str_cntr]*Bohr)
-            temp_atms = map_strctures(temp_atms,temp_atms0)
-            sum_str+=temp_atms.get_scaled_positions()
-            sum_Rset+=temp_atms.get_cell()  
-        avg_str=sum_str/cntr
-        avg_Rset=sum_Rset/cntr  
-        AVG_Str_Hist = Atoms(numbers=numbers,scaled_positions=avg_str, cell=avg_Rset)
+            AVG_Str_Hist = self.get_ase_str(i=-1)
+        else:
+            for str_cntr in range(initial,len(xcart)):
+                cntr+=1
+                temp_atms = Atoms(numbers=numbers,positions=xcart[str_cntr]*Bohr, cell=RSET[str_cntr]*Bohr)
+                temp_atms = map_strctures(temp_atms,temp_atms0)
+                sum_str+=temp_atms.get_scaled_positions()
+                sum_Rset+=temp_atms.get_cell()  
+            avg_str=sum_str/cntr
+            avg_Rset=sum_Rset/cntr  
+            AVG_Str_Hist = Atoms(numbers=numbers,scaled_positions=avg_str, cell=avg_Rset)
         return(AVG_Str_Hist)
 
     def get_mdtemp(self,i=None):
