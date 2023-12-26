@@ -481,6 +481,8 @@ class hist_reader():
         numbers = self.tot_numbers
         my_xred = self.xred[i]
         my_RSET = self.RSET[i]
+        print('get_ase_str::::=------')
+        print(len(my_xred))
         str_from_nc= Atoms(numbers=numbers,scaled_positions=my_xred, cell=my_RSET*Bohr, pbc=PBC_Flg)
         return(str_from_nc)
 
