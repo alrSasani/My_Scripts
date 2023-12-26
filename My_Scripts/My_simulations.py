@@ -205,12 +205,10 @@ class MB_sim():
     def set_prim_strc_nc(self, nc_file, step=-1, avg=False):
         NC_dta = mync.hist_reader(nc_file)
         if avg:
-            print('set_prim_strc_nc _____________True',step)
             # if step == -1:
             #     step = 0
             self.Prim_str = NC_dta.get_avg_str(initial=step)
         else:
-            print('set_prim_strc_nc _____________false',step)
             self.Prim_str = NC_dta.get_ase_str(i=step)
 
     def set_prim_strc(self, strc):
@@ -290,18 +288,17 @@ def relax_NC_strc(Har_fle,Anh_fle,rlx_opt=2,dipdip=1,efield=[0,0,0],NC_FILE=None
     my_sim_rlx.inpt['efield'] = efield
     my_sim_rlx.inpt['ntime'] = 500
     if NC_FILE is not None:
-        print('Here in rlx_NC_Strc')
         my_sim_rlx.set_prim_strc_nc(NC_FILE,step = NC_Step,avg=avg_nc_str)
         my_sim_rlx.write_hist()
     my_sim_rlx.write_run_data()        
     os.system(f'sh MB_run.sh')
-
 
 def MC_SIMS(Har_fle,Anh_fle,rlx_opt=2,dipdip=1,temperature=1,ndym=2000,nctime=40,hmctt=40,NC_FILE=None,NC_Step=-1,
             avg_nc_str=False,ngqpt=[4,4,4],ncell=[1,1,1],efield=[0,0,0],prefix='Strc',EXEC='MB_16Jun',NCPU=1,sim_path='./'):
     my_sim = MB_sim(EXEC, Har_fle, Anhar_coeffs=Anh_fle, ngqpt=ngqpt, ncell= ncell, ncpu=NCPU, test_set='no',prefix = prefix)
     my_sim.MC_dta(ndym,  restartxf=0, optcell=rlx_opt, nctime=nctime, hmctt=hmctt)
     print('temperature = ',temperature)
+    print('Simulation path for relaxing is: \n',sim_path)
     my_sim.inpt['temperature'] = [temperature]
     my_sim.inpt['dipdip'] = dipdip
     my_sim.inpt['efield'] = efield
