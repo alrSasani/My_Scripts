@@ -482,7 +482,6 @@ class hist_reader():
         my_xred = self.xred[i]
         my_RSET = self.RSET[i]
         str_from_nc= Atoms(numbers=numbers,scaled_positions=my_xred, cell=my_RSET*Bohr, pbc=PBC_Flg)
-        write('POSCAR_O',str_from_nc,vasp_5=True)
         return(str_from_nc)
 
     def get_avg_str(self,initial=0):
