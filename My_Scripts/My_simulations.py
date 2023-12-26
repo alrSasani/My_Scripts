@@ -205,10 +205,12 @@ class MB_sim():
     def set_prim_strc_nc(self, nc_file, step=-1, avg=False):
         NC_dta = mync.hist_reader(nc_file)
         if avg:
+            print('set_prim_strc_nc _____________True',step)
             # if step == -1:
             #     step = 0
             self.Prim_str = NC_dta.get_avg_str(initial=step)
         else:
+            print('set_prim_strc_nc _____________false',step)
             self.Prim_str = NC_dta.get_ase_str(i=step)
 
     def set_prim_strc(self, strc):
@@ -288,6 +290,7 @@ def relax_NC_strc(Har_fle,Anh_fle,rlx_opt=2,dipdip=1,efield=[0,0,0],NC_FILE=None
     my_sim_rlx.inpt['efield'] = efield
     my_sim_rlx.inpt['ntime'] = 500
     if NC_FILE is not None:
+        print('Here in rlx_NC_Strc')
         my_sim_rlx.set_prim_strc_nc(NC_FILE,step = NC_Step,avg=avg_nc_str)
         my_sim_rlx.write_hist()
     my_sim_rlx.write_run_data()        
