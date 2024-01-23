@@ -497,6 +497,8 @@ class hist_reader():
         temp_atms0 = Atoms(numbers=numbers,positions=xcart[initial]*Bohr, cell=RSET[initial]*Bohr)
         if initial == -1:
             AVG_Str_Hist = self.get_ase_str(i=-1)
+            temp_atms = map_strctures(self.get_ase_str(i=-1),temp_atms0)
+            AVG_Str_Hist = temp_atms
         else:
             for str_cntr in range(initial,len(xcart)):
                 cntr+=1

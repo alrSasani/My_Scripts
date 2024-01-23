@@ -166,7 +166,7 @@ class MB_sim():
         self.inp_text = ''
         for i in self.inpt.keys():
             val = ''
-            if type(self.inpt[i]) in (int, float):
+            if type(self.inpt[i]) in (int, float,str):
                 tmp_text = ('{}  =  {} \n'.format(i, self.inpt[i]))
             else:
                 val = ' '.join(list(map(str, self.inpt[i])))
@@ -205,8 +205,8 @@ class MB_sim():
     def set_prim_strc_nc(self, nc_file, step=-1, avg=False):
         NC_dta = mync.hist_reader(nc_file)
         if avg:
-            if step == -1:
-                step = 0
+            # if step == -1:
+            #     step = 0
             self.Prim_str = NC_dta.get_avg_str(initial=step)
         else:
             self.Prim_str = NC_dta.get_ase_str(i=step)
@@ -246,22 +246,22 @@ def get_number_SG(sg):
     return(wrds[1][1:-1])
 
 
-def relax_NC_Str(path0, har_xml, Anhar_coeffs, nc_file, EXEC='MB_16Jun', ngqpt=[8, 8, 8], ncell=[2, 2, 2], NCPU=8, Files_prefix='BTO', opt_cell=[2], step=-1):
-    strc = mync.get_NC_str(nc_file, stp=step)
-    my_sim = MB_sim(EXEC, har_xml, Anhar_coeffs=Anhar_coeffs, ngqpt=ngqpt,
-                    ncell=ncell, ncpu=NCPU, test_set='no', prefix=Files_prefix)
-    my_sim.rlx_dta()
-    for dd in opt_cell:
-        SPG = get_number_SG(spg.get_spacegroup(strc))
-        sim_path = f'{path0}/SG_{SPG}/dd_{dd}'
-        os.makedirs(sim_path)
-        # my_sim.create_path(sim_path)
-        os.chdir(sim_path)
-        my_sim.inpt['optcell'] = dd
-        my_sim.set_prim_strc_nc(nc_file, step=step, avg=False)
-        my_sim.write_hist()
-        my_sim.write_run_data()
-        os.system(f'sh MB_run.sh')
+# def relax_NC_Str(path0, har_xml, Anhar_coeffs, nc_file, EXEC='MB_16Jun', ngqpt=[8, 8, 8], ncell=[2, 2, 2], NCPU=8, Files_prefix='BTO', opt_cell=[2], step=-1):
+#     strc = mync.get_NC_str(nc_file, stp=step)
+#     my_sim = MB_sim(EXEC, har_xml, Anhar_coeffs=Anhar_coeffs, ngqpt=ngqpt,
+#                     ncell=ncell, ncpu=NCPU, test_set='no', prefix=Files_prefix)
+#     my_sim.rlx_dta()
+#     for dd in opt_cell:
+#         SPG = get_number_SG(spg.get_spacegroup(strc))
+#         sim_path = f'{path0}/SG_{SPG}/dd_{dd}'
+#         os.makedirs(sim_path)
+#         # my_sim.create_path(sim_path)
+#         os.chdir(sim_path)
+#         my_sim.inpt['optcell'] = dd
+#         my_sim.set_prim_strc_nc(nc_file, step=step, avg=False)
+#         my_sim.write_hist()
+#         my_sim.write_run_data()
+#         os.system(f'sh MB_run.sh')
 
 def get_xml_files(DDB,modle1,ngqpt,ncell=[1,1,1],prt_dipdip=1,output_name='Str',sim_path='./',Har_name='Harfile',Anh_name='Modelfile',EXEC='MB_16Jun',NCPU=1):
     my_sim1 = MB_sim(EXEC, DDB, Anhar_coeffs=modle1, ngqpt=ngqpt, ncell=ncell, ncpu=NCPU, test_set='no',prefix = output_name)
@@ -277,7 +277,7 @@ def get_xml_files(DDB,modle1,ngqpt,ncell=[1,1,1],prt_dipdip=1,output_name='Str',
     anh_xml1 = f'{sim_path}/{Anh_name}' 
     return(har_xml1,anh_xml1)   
 
-def relax_NC_strc(Har_fle,Anh_fle,rlx_opt=2,dipdip=1,efield=[0,0,0],NC_FILE=None,NC_Step=-1,avg_nc_str=False,ngqpt=[4,4,4],ncell=[1,1,1],prefix='Strc',EXEC='MB_16Jun',NCPU=1,sim_path='./'):
+def relax_NC_strc(Har_fle,Anh_fle,rlx_opt=2,dipdip=1,efield=[0,0,0],NC_FILE=None,NC_Step=-1,avg_nc_str=False,ngqpt=[4,4,4],ncell=[1,1,1],prefix='Strc',EXEC='MB_16Jun',NCPU=1,sim_path='./',fix_atoms=None,natfix=0 ):
     my_sim_rlx = MB_sim(EXEC, Har_fle, Anhar_coeffs=Anh_fle, ngqpt=ngqpt, ncell= ncell, ncpu=NCPU, test_set='no',prefix = prefix)
     my_sim_rlx.rlx_dta()
     os.makedirs(sim_path,exist_ok=True)
@@ -286,6 +286,12 @@ def relax_NC_strc(Har_fle,Anh_fle,rlx_opt=2,dipdip=1,efield=[0,0,0],NC_FILE=None
     my_sim_rlx.inpt['optcell'] = rlx_opt
     my_sim_rlx.inpt['dipdip'] = dipdip
     my_sim_rlx.inpt['efield'] = efield
+    if natfix > 0:
+        my_sim_rlx.inpt['natfix'] = natfix
+        if fix_atoms is None:
+            raise('fixed atoms should be provided in fix_atom')
+        else:
+            my_sim_rlx.inpt['iatfix'] = fix_atoms
     my_sim_rlx.inpt['ntime'] = 500
     if NC_FILE is not None:
         my_sim_rlx.set_prim_strc_nc(NC_FILE,step = NC_Step,avg=avg_nc_str)
@@ -293,12 +299,12 @@ def relax_NC_strc(Har_fle,Anh_fle,rlx_opt=2,dipdip=1,efield=[0,0,0],NC_FILE=None
     my_sim_rlx.write_run_data()        
     os.system(f'sh MB_run.sh')
 
-
 def MC_SIMS(Har_fle,Anh_fle,rlx_opt=2,dipdip=1,temperature=1,ndym=2000,nctime=40,hmctt=40,NC_FILE=None,NC_Step=-1,
             avg_nc_str=False,ngqpt=[4,4,4],ncell=[1,1,1],efield=[0,0,0],prefix='Strc',EXEC='MB_16Jun',NCPU=1,sim_path='./'):
     my_sim = MB_sim(EXEC, Har_fle, Anhar_coeffs=Anh_fle, ngqpt=ngqpt, ncell= ncell, ncpu=NCPU, test_set='no',prefix = prefix)
     my_sim.MC_dta(ndym,  restartxf=0, optcell=rlx_opt, nctime=nctime, hmctt=hmctt)
     print('temperature = ',temperature)
+    print('Simulation path for relaxing is: \n',sim_path)
     my_sim.inpt['temperature'] = [temperature]
     my_sim.inpt['dipdip'] = dipdip
     my_sim.inpt['efield'] = efield

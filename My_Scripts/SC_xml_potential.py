@@ -17,7 +17,7 @@ class Har_sc_maker():
     """
     This class creates the supercell and the harmonic potential for the supercell
     """
-    def __init__(self, xml_file, SC_mat,strain_in=np.zeros((3,3)),neglect_tot_FC=False):
+    def __init__(self, xml_file, SC_mat,strain_in=np.zeros((3,3)),neglect_tot_FC=False,elas_const_mul = None):
         """
         xml_file: the xml file for the unit cell
         SC_mat: the supercell matrix
@@ -26,6 +26,7 @@ class Har_sc_maker():
         """
         self.__Curnt_id = 0 
         self.neglect_tot_FC = neglect_tot_FC  
+        self.elas_const_mul=elas_const_mul
         self.has_SC_FCDIC = False
         self.has_FIN_FCDIC = False             
         self.add_material(xml_file, SC_mat,strain_in)  
@@ -197,7 +198,18 @@ class Har_sc_maker():
         else:
             keys = SC_FC.keys()
 
-        SCL_elas = ((self.xml.ela_cons)*SC_num_Uclls)
+        SCL_elas = np.array(((self.xml.ela_cons)*SC_num_Uclls))
+        if self.elas_const_mul is not None:
+            SCL_elas[0,0] = self.elas_const_mul[0]*SCL_elas[0,0]
+            SCL_elas[1,1] = self.elas_const_mul[1]*SCL_elas[1,1]
+            SCL_elas[0,1] = np.sqrt(self.elas_const_mul[0]*self.elas_const_mul[1])*SCL_elas[0,1]
+            SCL_elas[1,0] = np.sqrt(self.elas_const_mul[0]*self.elas_const_mul[1])*SCL_elas[1,0]
+           # SCL_elas[0,2] = np.sqrt(self.elas_const_mul[0]*self.elas_const_mul[2])*SCL_elas[0,2]
+           # SCL_elas[2,0] = np.sqrt(self.elas_const_mul[0]*self.elas_const_mul[2])*SCL_elas[2,0]
+           # SCL_elas[1,2] = np.sqrt(self.elas_const_mul[2]*self.elas_const_mul[1])*SCL_elas[1,2]
+           # SCL_elas[2,1] = np.sqrt(self.elas_const_mul[2]*self.elas_const_mul[1])*SCL_elas[2,1]
+    
+            
         xml_dta['keys'] = keys
         xml_dta['atom'] = self.mySC
         xml_dta['SCL_elas'] = SCL_elas

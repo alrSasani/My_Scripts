@@ -10,7 +10,7 @@ from My_Scripts import tools
 import os
 from ase.build import sort
 
-def SC_model_maker(my_harf,my_Anhf,scll,my_SCll,har_out,anh_out,strain_in=np.zeros((3,3)),missfit_strain=True,Higher_order_strain=False):
+def SC_model_maker(my_harf,my_Anhf,scll,my_SCll,har_out,anh_out,strain_in=np.zeros((3,3)),missfit_strain=True,Higher_order_strain=False,elas_const_mul = None):
     """
     Make a supercell model from a primitive cell model
     Params:
@@ -24,7 +24,7 @@ def SC_model_maker(my_harf,my_Anhf,scll,my_SCll,har_out,anh_out,strain_in=np.zer
         missfit_strain: whether to include the mismatch strain of the supercell
         Higher_order_strain: whether to include the higher order strain of the supercell
     """
-    sc_maker=SC_pot.Har_sc_maker(my_harf,scll,strain_in)
+    sc_maker=SC_pot.Har_sc_maker(my_harf,scll,strain_in,elas_const_mul = elas_const_mul)
     sc_maker.reshape_FCDIC(my_SCll)
     sc_maker.write_xml(har_out)
     anh_SCxml=SC_pot.Anh_sc_maker(my_harf,my_Anhf,strain_in,missfit_strain=missfit_strain,Higher_order_strain=Higher_order_strain)
@@ -32,7 +32,7 @@ def SC_model_maker(my_harf,my_Anhf,scll,my_SCll,har_out,anh_out,strain_in=np.zer
     anh_SCxml.wrt_anxml(anh_out)
 
 def int_model_maker(xmlf1, anh_file1, scmat1, xmlf2, anh_file2, scmat2, symmetric=False, har_file='int_harmoni.xml', Anhar_file='int_harmoni.xml',
-                negelect_A_SITE=False,negelect_Tot_FCs=False, NW_Strc = False):
+                negelect_A_SITE=False,negelect_Tot_FCs=False, NW_Strc = False,sim_eps=False):
     """
     Make a superlattice model from two primitive cell models
     Params:
@@ -49,7 +49,7 @@ def int_model_maker(xmlf1, anh_file1, scmat1, xmlf2, anh_file2, scmat2, symmetri
         negelect_Tot_FCs: whether to neglect the total force constants in the superlattice model. (only keep the short range part.)
     """
     # Harmonic_term generation
-    har_xml = interface_xmls.Har_interface(xmlf1, scmat1, xmlf2, scmat2, symmetric=symmetric,negelect_A_SITE=negelect_A_SITE,negelect_Tot_FCs=negelect_Tot_FCs,NW_Strc = NW_Strc)
+    har_xml = interface_xmls.Har_interface(xmlf1, scmat1, xmlf2, scmat2, symmetric=symmetric,negelect_A_SITE=negelect_A_SITE,negelect_Tot_FCs=negelect_Tot_FCs,NW_Strc = NW_Strc,sim_eps=sim_eps)
     har_xml.get_STR_FCDIC()
     har_xml.reshape_FCDIC()
     STRC = har_xml.ref_cell
@@ -104,7 +104,7 @@ def get_avg_cell_SL(har_xml1,dim_1,har_xml2,dim_2):
 
 def SL_MAKER(DDB1,modle1,ncell1,DDB2,modle2,ncell2,ngqptm,sim_path1=None,sim_path2=None,NCPU=1,ref_cell='M2',Har_int='Har_int',Anh_int='Anh_int',
              miss_fit_trms=True,Higher_order_strain=True,negelect_A_SITE=True,negelect_Tot_FCs=True,symmetric=True,xml_cell1=None,
-             xml_cell2=None,if_return_atom=False,EXEC='MB_16Jun'):
+             xml_cell2=None,if_return_atom=False,EXEC='MB_16Jun',elas_const_mul = None,sim_eps=False):
     """
     Make a superlattice model from two primitive cell models
     params:
@@ -201,7 +201,7 @@ def SL_MAKER(DDB1,modle1,ncell1,DDB2,modle2,ncell2,ngqptm,sim_path1=None,sim_pat
     strain_ref1[2,2] = 0
 
     # build the supercell model of the primitive cell 1
-    SC_model_maker(har_xml1, anh_xml1, temp_scll, my_atms1, tmp_har_xml1 , tmp_anh_xml1,strain_in=strain_ref1,Higher_order_strain=Higher_order_strain ,missfit_strain=miss_fit_trms)
+    SC_model_maker(har_xml1, anh_xml1, temp_scll, my_atms1, tmp_har_xml1 , tmp_anh_xml1,strain_in=strain_ref1,Higher_order_strain=Higher_order_strain ,missfit_strain=miss_fit_trms,elas_const_mul = elas_const_mul)
 
     cor_har_xml1,cor_anh_xml1 = get_xml_files(tmp_har_xml1,tmp_anh_xml1,ngqpt=ngqptm,ncell=xml_cell1,prt_dipdip=1,output_name='tmp_Str1',
                                     sim_path=sim_path1,Har_name=f'cor_{Har_name}',Anh_name=f'cor_{Anh_name}',EXEC=EXEC,NCPU=NCPU)
@@ -213,7 +213,7 @@ def SL_MAKER(DDB1,modle1,ncell1,DDB2,modle2,ncell2,ngqptm,sim_path1=None,sim_pat
     strain_ref2[2,2] = 0
 
     # build the supercell model of the primitive cell 2
-    SC_model_maker(har_xml2, anh_xml2, temp_scll, trans_atms2, tmp_har_xml2 , tmp_anh_xml2,strain_in=strain_ref2,Higher_order_strain=Higher_order_strain ,missfit_strain=miss_fit_trms)
+    SC_model_maker(har_xml2, anh_xml2, temp_scll, trans_atms2, tmp_har_xml2 , tmp_anh_xml2,strain_in=strain_ref2,Higher_order_strain=Higher_order_strain ,missfit_strain=miss_fit_trms,elas_const_mul = elas_const_mul)
 
     cor_har_xml2,cor_anh_xml2 = get_xml_files(tmp_har_xml2,tmp_anh_xml2,ngqpt=ngqptm,ncell=xml_cell2,prt_dipdip=1,output_name='tmp_Str2',
                                     sim_path=sim_path2,Har_name=f'cor_{Har_name}',Anh_name=f'cor_{Anh_name}',EXEC=EXEC,NCPU=NCPU)
@@ -223,7 +223,7 @@ def SL_MAKER(DDB1,modle1,ncell1,DDB2,modle2,ncell2,ngqptm,sim_path1=None,sim_pat
     SC_mat2 = [[1,0,0],[0,1,0],[0,0,ncell2[2]]]
     har_xml = int_model_maker(cor_har_xml1,cor_anh_xml1,SC_mat1,cor_har_xml2,cor_anh_xml2,SC_mat2,symmetric=symmetric,
                                             har_file=Har_int,Anhar_file=Anh_int,negelect_A_SITE=negelect_A_SITE,
-                                            negelect_Tot_FCs=negelect_Tot_FCs)
+                                            negelect_Tot_FCs=negelect_Tot_FCs,sim_eps=sim_eps)
 
     SL_atms = har_xml.ref_cell 
     if if_return_atom:
