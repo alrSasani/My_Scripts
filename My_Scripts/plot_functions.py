@@ -493,7 +493,8 @@ class Get_Pol():
         disp_proj = self.proj_dir*disp
         return(disp_proj)
 
-def plot_3d_pol_vectrs_pol(xml_file,NC_FILE_STR,dim,xml_file2=None,NC_stp=-1,Fast_map=True,plot_3d=False,cntr_at = ['Ti'],plot_dire=[1,1,1],ave_str=False):
+def plot_3d_pol_vectrs_pol(xml_file,NC_FILE_STR,dim,xml_file2=None,NC_stp=-1,Fast_map=True,plot_3d=False,
+                           cntr_at = ['Ti'],plot_dire=[1,1,1],ave_str=False):
     pol_mat = get_pol_vectrs(xml_file,NC_FILE_STR,dim,xml_file2=None,NC_stp=-1,Fast_map=True,cntr_at = ['Ti'],plot_dire=[1,1,1],ave_str=False,length_mul=4)
     max_pol = 0
     for i in range(dim[0]):
@@ -510,13 +511,14 @@ def plot_3d_pol_vectrs_pol(xml_file,NC_FILE_STR,dim,xml_file2=None,NC_stp=-1,Fas
         mlab.pipeline.vector_cut_plane(src, mask_points=1, scale_factor=1)
     mlab.show() 
           
-def get_pol_vectrs(xml_file,NC_FILE_STR,dim,xml_file2=None,NC_stp=-1,dim_1=0,Fast_map=True,cntr_at = ['Ti'],plot_dire=[1,1,1],cal_c_ov_a=False,origin_atm=['Pb','Sr'],ave_str=False,length_mul=4):
+def get_pol_vectrs(xml_file,NC_FILE_STR,dim,xml_file2=None,NC_stp=-1,dim_1=0,Fast_map=True,cntr_at = ['Ti'],
+                   plot_dire=[1,1,1],cal_c_ov_a=False,origin_atm=['Pb','Sr'],ave_str=False,length_mul=4):
     myxml1=xml_io.Xml_sys_reader(xml_file)
     myxml1.get_atoms()
     # atm_pos1=myxml1.atm_pos
     myxml1.get_ase_atoms()
     my_atms1=myxml1.ase_atoms
-    ref_str = my_atms1.repeat([1,1,dim_1]) # make_supercell(my_atms1,[[dim[0],0,0],[0,dim[1],0],[0,0,dim_1]])  #my_atms1.repeat([dim[0],dim[1],dim_1]) #
+    # ref_str = my_atms1.repeat([1,1,dim_1]) # make_supercell(my_atms1,[[dim[0],0,0],[0,dim[1],0],[0,0,dim_1]])  #my_atms1.repeat([dim[0],dim[1],dim_1]) #
 
     if xml_file2 is not None:
         if dim_1==0:
@@ -531,12 +533,16 @@ def get_pol_vectrs(xml_file,NC_FILE_STR,dim,xml_file2=None,NC_stp=-1,dim_1=0,Fas
     else:
         ref_str = make_supercell(my_atms1,[[dim[0],0,0],[0,dim[1],0],[0,0,dim[2]]])
     BEC = ref_str.get_array('BEC')
+    print('reffff >>>>',len(ref_str))
     if ave_str:
         final_Str_Hist = mync.get_avg_str(NC_FILE_STR,init_stp=NC_stp)
     else:
         final_Str_Hist = mync.get_NC_str(NC_FILE_STR,stp=NC_stp)
+    if dim_1!=0:
+        dim[2] = dim_1
     Prim_Str_Hist = Atoms(numbers=ref_str.get_atomic_numbers(),scaled_positions=ref_str.get_scaled_positions(), cell=final_Str_Hist.get_cell(), pbc=True)
-    my_pol = Get_Pol(Prim_Str_Hist,BEC,proj_dir = plot_dire,cntr_at = cntr_at,trans_mat = dim,dim_1=dim_1,fast=Fast_map,cal_c_ov_a=cal_c_ov_a,origin_atm=origin_atm)
+    print('>>>>',len(final_Str_Hist))
+    my_pol = Get_Pol(Prim_Str_Hist,BEC,proj_dir = plot_dire,cntr_at = cntr_at,trans_mat = dim,dim_1=0,fast=Fast_map,cal_c_ov_a=cal_c_ov_a,origin_atm=origin_atm)
     # write('POSCAR_Finall_Strc_Pol',final_Str_Hist,vasp5=True,sort=True)
     pol_mat = my_pol.get_pol_mat(final_Str_Hist)
 
