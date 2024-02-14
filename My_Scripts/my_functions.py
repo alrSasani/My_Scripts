@@ -48,7 +48,6 @@ def get_dist_strc(SL_atms,with_bloch_comp,dim,atom_to_disp,mat_id_To_displace,re
     a_dir = dim[0][0]
     new_pos = []
     
-    
     if with_bloch_comp: 
         dm_size = int((a_dir/2)-wall_size)
         dm_size_0 = int((dm_size/2))

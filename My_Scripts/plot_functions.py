@@ -533,7 +533,7 @@ def get_pol_vectrs(xml_file,NC_FILE_STR,dim,xml_file2=None,NC_stp=-1,dim_1=0,Fas
     else:
         ref_str = make_supercell(my_atms1,[[dim[0],0,0],[0,dim[1],0],[0,0,dim[2]]])
     BEC = ref_str.get_array('BEC')
-    print('reffff >>>>',len(ref_str))
+    # print('reffff >>>>',len(ref_str))
     if ave_str:
         final_Str_Hist = mync.get_avg_str(NC_FILE_STR,init_stp=NC_stp)
     else:
@@ -541,7 +541,7 @@ def get_pol_vectrs(xml_file,NC_FILE_STR,dim,xml_file2=None,NC_stp=-1,dim_1=0,Fas
     if dim_1!=0:
         dim[2] = dim_1
     Prim_Str_Hist = Atoms(numbers=ref_str.get_atomic_numbers(),scaled_positions=ref_str.get_scaled_positions(), cell=final_Str_Hist.get_cell(), pbc=True)
-    print('>>>>',len(final_Str_Hist))
+    # print('>>>>',len(final_Str_Hist))
     my_pol = Get_Pol(Prim_Str_Hist,BEC,proj_dir = plot_dire,cntr_at = cntr_at,trans_mat = dim,dim_1=0,fast=Fast_map,cal_c_ov_a=cal_c_ov_a,origin_atm=origin_atm)
     # write('POSCAR_Finall_Strc_Pol',final_Str_Hist,vasp5=True,sort=True)
     pol_mat = my_pol.get_pol_mat(final_Str_Hist)
