@@ -231,7 +231,7 @@ class Anh_sc_maker():
     """
     This class creates the anharmonic potential for the supercell
     """
-    def __init__(self, har_xml, anh_xml,strain_in=np.zeros((3,3)),missfit_strain=True,Higher_order_strain=False):
+    def __init__(self, har_xml, anh_xml,strain_in=np.zeros((3,3)),missfit_strain=True,Higher_order_strain=False,scnd_order_strain=False):
         """
         params:
         har_xml: the xml file for the unit cell
@@ -247,6 +247,7 @@ class Anh_sc_maker():
         strain_vogt = missfit_terms.get_strain(strain=strain_in)
         self.missfit_strain = missfit_strain
         self.Higher_order_strain = Higher_order_strain
+        self.scnd_order_strain=scnd_order_strain
         if any(strain_vogt)>0.0001:
             self.has_strain = True
             self.voigt_strain = strain_vogt
@@ -283,14 +284,14 @@ class Anh_sc_maker():
             self.myxml_clss.set_tags()
             my_tags = self.myxml_clss.tags
             new_coeffs, new_trms = missfit_terms.get_missfit_terms(
-                coeff, trms, my_tags, self.voigt_strain,  Higher_order_strain=self.Higher_order_strain,voigts=temp_voits)
+                coeff, trms, my_tags, self.voigt_strain,  Higher_order_strain=self.Higher_order_strain,voigts=temp_voits,scnd_order_strain=self.scnd_order_strain)
             for ntrm_cntr in range(len(new_coeffs)):
                 trms.append(new_trms[ntrm_cntr])
                 coeff[total_coefs+ntrm_cntr] = new_coeffs[ntrm_cntr]
             print(f'number of Missfit Coeffiecinets for this  {my_atoms.get_chemical_formula()}  is {len(new_coeffs)}')
             total_coefs = len(coeff)
             self.myxml_clss.get_ela_cons()
-            new_coeffs, new_trms = missfit_terms.get_elas_missfit(self.myxml_clss.ela_cons,self.voigt_strain)
+            new_coeffs, new_trms = missfit_terms.get_elas_missfit(self.myxml_clss.ela_cons,self.voigt_strain,scnd_order_strain=self.scnd_order_strain)
             print(f'Creating elastic terms for missfit strain for  {my_atoms.get_chemical_formula()}  : # of terms is {len(new_coeffs)}')
             for ntrm_cntr in range(len(new_coeffs)):
                 trms.append(new_trms[ntrm_cntr])

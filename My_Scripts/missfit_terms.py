@@ -49,7 +49,7 @@ def get_str_phonon_voigt( trms,  Higher_order_strain=False ,voigts=[1, 2, 3]):
    # print(10*'*******')
    return(str_phonon_voigt)
 
-def get_new_str_terms( term,get_org=False):
+def get_new_str_terms( term,get_org=False,scnd_order_strain = False):
    '''This function changes the term to a dictionary so that we can expand and multiply like polynomials
    it returns a list like : [[({'z': 1, 'c': 1}, 2)]] where we have in the dictionary different voigt strains 
    (x,y,z,xy ..) and their values as a,b,c,d ... and the power of the strain as the last element of the list 
@@ -64,6 +64,7 @@ def get_new_str_terms( term,get_org=False):
 
    nstrain = int(term[-1]['strain'])
    ndis = int(term[-1]['dips'])
+   
    if ndis == 0:
       ndis = 1
    my_lst = []
@@ -73,8 +74,14 @@ def get_new_str_terms( term,get_org=False):
       if get_org:
             my_str = ({my_vogt_dic[my_voigt]: 1}, my_power)
       else:
-            my_str = (
-               {my_vogt_dic[my_voigt]: 1, my_vogt_str[my_voigt]: 1}, my_power)
+            if scnd_order_strain:
+               txt_n = ' '.join([my_vogt_str[my_voigt],my_vogt_dic[my_voigt]])
+               my_str = (
+                   {my_vogt_dic[my_voigt]: 1, my_vogt_str[my_voigt]: 1,txt_n:1}, my_power)
+            else:
+               my_str = (
+                   {my_vogt_dic[my_voigt]: 1, my_vogt_str[my_voigt]: 1}, my_power)                
+               
       my_lst.append(my_str)
    vogt_terms.append(my_lst)
    return(vogt_terms)
@@ -82,6 +89,7 @@ def get_new_str_terms( term,get_org=False):
 def get_mult_coeffs( my_str_trms):
    """
    This function returns the multiplication of the terms in the list my_str_trms
+   i.e [({'z': 1, 'c': 1, 'c z': 1}, 2)]   >>>  multi   =  {'z z': 1, 'c z': 2, 'c z z': 2, 'c c': 1, 'c c z': 2, 'c c z z': 1}
    """
    mult_terms = []
    for i in range(len(my_str_trms)):
@@ -94,27 +102,29 @@ def get_mult_coeffs( my_str_trms):
                tem_dic = terms_mult(tem_dic, get_pwr_N(
                   my_str_trms[i][j][0], my_str_trms[i][j][1]))
       mult_terms.append(tem_dic)
+      # print(my_str_trms[i],"  >>>  multi   = ",tem_dic)
+   
    return(mult_terms)
 
-def get_shifted_terms( term, my_strain=[0, 0, 0]):
+def get_shifted_terms( term, my_strain=[0, 0, 0],scnd_order_strain = False):
    """
    This function returns the terms by removing the terms already inside the model ."""
+   
    not_shift = ['x', 'y', 'z']
    a, b, c = my_strain[0], my_strain[1], my_strain[2]
    my_mul_terms = get_mult_coeffs(
-      get_new_str_terms(term))
+      get_new_str_terms(term,scnd_order_strain = scnd_order_strain))
    org_terms = get_mult_coeffs(
       get_new_str_terms(term,get_org=True))
-   # print(10*'---')
-   # print(org_terms)
-   # print(my_mul_terms)
    for i in range(len(org_terms)):
       for my_key in org_terms[i].keys():
             del my_mul_terms[i][my_key]
    shift_mult_terms = []
    for i in range(len(my_mul_terms)):
       new_dict = {}
+      # print('key = ',my_mul_terms[i].keys())
       for my_key in my_mul_terms[i].keys():
+            # temp_dic = {}
             my_trms = my_key.split()
             my_val = my_mul_terms[i][my_key]
             new_key = ' '
@@ -128,11 +138,15 @@ def get_shifted_terms( term, my_strain=[0, 0, 0]):
                         my_val *= b
                   elif tt == 'c':
                         my_val *= c
-            new_dict[new_key] = my_val
+            if new_key in new_dict.keys():
+                new_dict[new_key] = my_val+new_dict[new_key]
+            else:
+               new_dict[new_key] = my_val
       shift_mult_terms.append(new_dict)
+      # print('dic = ',new_dict)
    return(shift_mult_terms)
 
-def get_missfit_term( coeff, trms, my_tags, my_strain, voigts=[1, 2, 3]):
+def get_missfit_term( coeff, trms, my_tags, my_strain, voigts=[1, 2, 3],scnd_order_strain=False):
    """
    For one coefficient. 
    For each term, this function returns the missfit terms (not already in the model).
@@ -155,7 +169,7 @@ def get_missfit_term( coeff, trms, my_tags, my_strain, voigts=[1, 2, 3]):
                voits_found = True
       if voits_found:
             my_terms = get_shifted_terms(
-               my_term, my_strain)
+               my_term, my_strain,scnd_order_strain = scnd_order_strain)
             ndisp = int(my_term[-1]['dips'])
             # print(my_terms)
             if ndisp>0 :
@@ -238,7 +252,7 @@ def get_missfit_term( coeff, trms, my_tags, my_strain, voigts=[1, 2, 3]):
    
    return(new_coeffs, new_temrs)
 
-def get_missfit_terms( coeff, terms, my_tags, my_strain, Higher_order_strain=False,voigts=[1, 2, 3]):
+def get_missfit_terms( coeff, terms, my_tags, my_strain, Higher_order_strain=False,voigts=[1, 2, 3],scnd_order_strain=False):
    """
    Loop over the coefficients and return the missfit terms for each coefficient.   
    """
@@ -246,7 +260,8 @@ def get_missfit_terms( coeff, terms, my_tags, my_strain, Higher_order_strain=Fal
    new_coeffs = []
    new_terms = []
    for icoeff in str_phonon_voigt:
-      temp_coeffs,temp_terms = get_missfit_term(coeff[icoeff], terms[icoeff], my_tags, my_strain, voigts=[1, 2, 3])
+      temp_coeffs,temp_terms = get_missfit_term(coeff[icoeff], terms[icoeff], my_tags, my_strain,
+                                                 voigts=[1, 2, 3],scnd_order_strain=scnd_order_strain)
       for cntr in range(len(temp_coeffs)):
             if len(temp_terms[cntr])>0:
                new_coeffs.append(temp_coeffs[cntr])
@@ -281,7 +296,7 @@ def get_strain( strain=np.zeros((0,0))):
    voigt_str = [strain[0,0],strain[1,1],strain[2,2],(strain[1,2]+strain[2,1])/2,(strain[0,2]+strain[2,0])/2,(strain[0,1]+strain[1,0])/2]
    return(np.array(voigt_str))
 
-def get_elas_missfit(ela_cnst,my_strain):
+def get_elas_missfit(ela_cnst,my_strain,scnd_order_strain=False):
    """
    This function returns the elastic missfit terms.
    """
@@ -289,6 +304,7 @@ def get_elas_missfit(ela_cnst,my_strain):
    # myxml_clss = xml_sys(self.xml)
    # myxml_clss.get_ela_cons()
    strten = np.zeros(6)
+   strten_2 = np.zeros(6)   
    new_coeffs = []
    new_terms = []
    my_vogt_dic = {1: 'eta_1', 2: 'eta_2', 3: 'eta_3', 4: 'eta_4', 5: 'eta_5', 6: 'eta_6'}
@@ -296,20 +312,23 @@ def get_elas_missfit(ela_cnst,my_strain):
    tot_nterms = 1
    for alpha in my_vogt_dic.keys():
       for beta in my_vogt_dic.keys():
-
-            strten[alpha-1] +=  ela_cnst[alpha-1,beta-1]*my_strain[beta-1] 
-
+            strten[alpha-1] +=  ela_cnst[alpha-1,beta-1]*(my_strain[beta-1]+my_strain[beta-1]**2)
+            strten_2[alpha-1] +=  ela_cnst[alpha-1,beta-1]*(my_strain[beta-1]+(0.5*my_strain[beta-1])**2)
       # if strten[alpha-1] > tol_str:
       new_coeffs.append({'number': str(tot_nterms), 'value': str(strten[alpha-1]), 'text': my_vogt_dic[alpha]})
       new_term = [[{'weight': ' 1.000000'},{'power': ' 1', 'voigt': str(alpha)}, {'dips': 0, 'strain': 1, 'distance': 0}]]
       new_terms.append(new_term)
       tot_nterms += 1
-
+      if scnd_order_strain:
+         new_coeffs.append({'number': str(tot_nterms), 'value': str(strten_2[alpha-1]), 'text': my_vogt_dic[alpha]})
+         new_term = [[{'weight': ' 1.000000'},{'power': ' 2', 'voigt': str(alpha)}, {'dips': 0, 'strain': 1, 'distance': 0}]]
+         new_terms.append(new_term)
+         tot_nterms += 1
    return(new_coeffs,new_terms)
 
 def str_mult(a,b):
     '''this function returns multiplication of two strings as like :
-        a   >  x      b   >>    a result    >   a x'''
+        a   >  x      b   >>    y   result    >   y x'''
     my_list = [*a.split(),*b.split()]
     my_list.sort() 
     return(' '.join(my_list))
