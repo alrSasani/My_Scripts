@@ -300,30 +300,26 @@ def get_elas_missfit(ela_cnst,my_strain,scnd_order_strain=False):
    """
    This function returns the elastic missfit terms.
    """
-   tol_str = 10**-6
-   # myxml_clss = xml_sys(self.xml)
-   # myxml_clss.get_ela_cons()
-   strten = np.zeros(6)
-   strten_2 = np.zeros(6)   
+   # tol_str = 10**-6
    new_coeffs = []
    new_terms = []
    my_vogt_dic = {1: 'eta_1', 2: 'eta_2', 3: 'eta_3', 4: 'eta_4', 5: 'eta_5', 6: 'eta_6'}
-   # ela_cnst = (myxml_clss.ela_cons)   #np.linalg.det(self.SCMATS[])*
    tot_nterms = 1
    for alpha in my_vogt_dic.keys():
+      cnst11 = 0
       for beta in my_vogt_dic.keys():
-            strten[alpha-1] +=  ela_cnst[alpha-1,beta-1]*(my_strain[beta-1]+my_strain[beta-1]**2)
-            strten_2[alpha-1] +=  ela_cnst[alpha-1,beta-1]*(my_strain[beta-1]+(0.5*my_strain[beta-1])**2)
-      # if strten[alpha-1] > tol_str:
-      new_coeffs.append({'number': str(tot_nterms), 'value': str(strten[alpha-1]), 'text': my_vogt_dic[alpha]})
+            cnst11 += ela_cnst[alpha-1,beta-1]*(my_strain[beta-1]+my_strain[beta-1]*my_strain[alpha-1])
+            cnst21 = 0.5*ela_cnst[alpha-1,beta-1]*(my_strain[beta-1]+my_strain[alpha-1]+(my_strain[beta-1]*my_strain[alpha-1]))
+            if scnd_order_strain:
+               new_coeffs.append({'number': str(tot_nterms), 'value': str(cnst21), 'text': ''.join([my_vogt_dic[alpha],my_vogt_dic[beta]])})
+               new_term = [[{'weight': ' 1.000000'},{'power': ' 1', 'voigt': str(alpha)},{'power': ' 1', 'voigt': str(beta)},{'dips': 0, 'strain': 2, 'distance': 0}]]
+               new_terms.append(new_term)
+               tot_nterms += 1            
+         
+      new_coeffs.append({'number': str(tot_nterms), 'value': str(cnst11), 'text': my_vogt_dic[alpha]})
       new_term = [[{'weight': ' 1.000000'},{'power': ' 1', 'voigt': str(alpha)}, {'dips': 0, 'strain': 1, 'distance': 0}]]
       new_terms.append(new_term)
       tot_nterms += 1
-      if scnd_order_strain:
-         new_coeffs.append({'number': str(tot_nterms), 'value': str(strten_2[alpha-1]), 'text': my_vogt_dic[alpha]})
-         new_term = [[{'weight': ' 1.000000'},{'power': ' 2', 'voigt': str(alpha)}, {'dips': 0, 'strain': 1, 'distance': 0}]]
-         new_terms.append(new_term)
-         tot_nterms += 1
    return(new_coeffs,new_terms)
 
 def str_mult(a,b):
