@@ -204,6 +204,11 @@ class Har_sc_maker():
             SCL_elas[1,1] = self.elas_const_mul[1]*SCL_elas[1,1]
             SCL_elas[0,1] = np.sqrt(self.elas_const_mul[0]*self.elas_const_mul[1])*SCL_elas[0,1]
             SCL_elas[1,0] = np.sqrt(self.elas_const_mul[0]*self.elas_const_mul[1])*SCL_elas[1,0]
+           # SCL_elas[0,2] = np.sqrt(self.elas_const_mul[0]*self.elas_const_mul[2])*SCL_elas[0,2]
+           # SCL_elas[2,0] = np.sqrt(self.elas_const_mul[0]*self.elas_const_mul[2])*SCL_elas[2,0]
+           # SCL_elas[1,2] = np.sqrt(self.elas_const_mul[2]*self.elas_const_mul[1])*SCL_elas[1,2]
+           # SCL_elas[2,1] = np.sqrt(self.elas_const_mul[2]*self.elas_const_mul[1])*SCL_elas[2,1]
+    
             
         xml_dta['keys'] = keys
         xml_dta['atom'] = self.mySC

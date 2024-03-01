@@ -2,9 +2,6 @@ import os
 import sys
 #sys.path.append("/home/alireza/CODES/My_scr")
 import numpy as np
-#from interface_xmls import *
-# import interface_xmls
-# import P_interface_xmls
 import phonopy
 from phonopy import Phonopy
 from phonopy.structure.atoms import PhonopyAtoms

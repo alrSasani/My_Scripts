@@ -32,7 +32,7 @@ def SC_model_maker(my_harf,my_Anhf,scll,my_SCll,har_out,anh_out,strain_in=np.zer
     anh_SCxml.wrt_anxml(anh_out)
 
 def int_model_maker(xmlf1, anh_file1, scmat1, xmlf2, anh_file2, scmat2, symmetric=False, har_file='int_harmoni.xml', Anhar_file='int_harmoni.xml',
-                negelect_A_SITE=False,negelect_Tot_FCs=False, NW_Strc = False):
+                negelect_A_SITE=False,negelect_Tot_FCs=False, NW_Strc = False,sim_eps=False):
     """
     Make a superlattice model from two primitive cell models
     Params:
@@ -49,7 +49,7 @@ def int_model_maker(xmlf1, anh_file1, scmat1, xmlf2, anh_file2, scmat2, symmetri
         negelect_Tot_FCs: whether to neglect the total force constants in the superlattice model. (only keep the short range part.)
     """
     # Harmonic_term generation
-    har_xml = interface_xmls.Har_interface(xmlf1, scmat1, xmlf2, scmat2, symmetric=symmetric,negelect_A_SITE=negelect_A_SITE,negelect_Tot_FCs=negelect_Tot_FCs,NW_Strc = NW_Strc)
+    har_xml = interface_xmls.Har_interface(xmlf1, scmat1, xmlf2, scmat2, symmetric=symmetric,negelect_A_SITE=negelect_A_SITE,negelect_Tot_FCs=negelect_Tot_FCs,NW_Strc = NW_Strc,sim_eps=sim_eps)
     har_xml.get_STR_FCDIC()
     har_xml.reshape_FCDIC()
     STRC = har_xml.ref_cell
@@ -103,8 +103,8 @@ def get_avg_cell_SL(har_xml1,dim_1,har_xml2,dim_2):
     return(ref_cell)
 
 def SL_MAKER(DDB1,modle1,ncell1,DDB2,modle2,ncell2,ngqptm,sim_path1=None,sim_path2=None,NCPU=1,ref_cell='M2',Har_int='Har_int',Anh_int='Anh_int',
-             miss_fit_trms=True,Higher_order_strain=True,negelect_A_SITE=True,negelect_Tot_FCs=True,symmetric=True,xml_cell1=None,
-             xml_cell2=None,if_return_atom=False,EXEC='MB_16Jun',scnd_order_strain=False,elas_const_mul = None):
+             miss_fit_trms=True,Higher_order_strain=True,negelect_A_SITE=True,negelect_Tot_FCs=True,symmetric=True,xml_cell1=None,xml_cell2=None,if_return_atom=False,EXEC='MB_16Jun',scnd_order_strain=False,elas_const_mul = None):
+
     """
     Make a superlattice model from two primitive cell models
     params:
@@ -223,7 +223,7 @@ def SL_MAKER(DDB1,modle1,ncell1,DDB2,modle2,ncell2,ngqptm,sim_path1=None,sim_pat
     SC_mat2 = [[1,0,0],[0,1,0],[0,0,ncell2[2]]]
     har_xml = int_model_maker(cor_har_xml1,cor_anh_xml1,SC_mat1,cor_har_xml2,cor_anh_xml2,SC_mat2,symmetric=symmetric,
                                             har_file=Har_int,Anhar_file=Anh_int,negelect_A_SITE=negelect_A_SITE,
-                                            negelect_Tot_FCs=negelect_Tot_FCs)
+                                            negelect_Tot_FCs=negelect_Tot_FCs,sim_eps=sim_eps)
 
     SL_atms = har_xml.ref_cell 
     if if_return_atom:

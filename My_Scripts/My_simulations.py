@@ -166,7 +166,7 @@ class MB_sim():
         self.inp_text = ''
         for i in self.inpt.keys():
             val = ''
-            if type(self.inpt[i]) in (int, float):
+            if type(self.inpt[i]) in (int, float,str):
                 tmp_text = ('{}  =  {} \n'.format(i, self.inpt[i]))
             else:
                 val = ' '.join(list(map(str, self.inpt[i])))
@@ -277,7 +277,7 @@ def get_xml_files(DDB,modle1,ngqpt,ncell=[1,1,1],prt_dipdip=1,output_name='Str',
     anh_xml1 = f'{sim_path}/{Anh_name}' 
     return(har_xml1,anh_xml1)   
 
-def relax_NC_strc(Har_fle,Anh_fle,rlx_opt=2,dipdip=1,efield=[0,0,0],NC_FILE=None,NC_Step=-1,avg_nc_str=False,ngqpt=[4,4,4],ncell=[1,1,1],prefix='Strc',EXEC='MB_16Jun',NCPU=1,sim_path='./'):
+def relax_NC_strc(Har_fle,Anh_fle,rlx_opt=2,dipdip=1,efield=[0,0,0],NC_FILE=None,NC_Step=-1,avg_nc_str=False,ngqpt=[4,4,4],ncell=[1,1,1],prefix='Strc',EXEC='MB_16Jun',NCPU=1,sim_path='./',fix_atoms=None,natfix=0 ):
     my_sim_rlx = MB_sim(EXEC, Har_fle, Anhar_coeffs=Anh_fle, ngqpt=ngqpt, ncell= ncell, ncpu=NCPU, test_set='no',prefix = prefix)
     my_sim_rlx.rlx_dta()
     os.makedirs(sim_path,exist_ok=True)
@@ -286,6 +286,12 @@ def relax_NC_strc(Har_fle,Anh_fle,rlx_opt=2,dipdip=1,efield=[0,0,0],NC_FILE=None
     my_sim_rlx.inpt['optcell'] = rlx_opt
     my_sim_rlx.inpt['dipdip'] = dipdip
     my_sim_rlx.inpt['efield'] = efield
+    if natfix > 0:
+        my_sim_rlx.inpt['natfix'] = natfix
+        if fix_atoms is None:
+            raise('fixed atoms should be provided in fix_atom')
+        else:
+            my_sim_rlx.inpt['iatfix'] = fix_atoms
     my_sim_rlx.inpt['ntime'] = 500
     if NC_FILE is not None:
         my_sim_rlx.set_prim_strc_nc(NC_FILE,step = NC_Step,avg=avg_nc_str)

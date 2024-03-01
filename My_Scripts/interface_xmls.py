@@ -28,7 +28,7 @@ class Har_interface:
      one side of the SL (these should have SC_mat1[0,0]=SC_mat2[0,0] and SC_mat1[1,1]=SC_mat2[1,1] while SC_mat1[2,2] and SC_mat2[2,2] define the thickness of the each material
      in two sides of the SL) '''
     
-    def __init__(self, xml_file1, SCMAT_1, xml_file2, SCMAT_2, symmetric=False,negelect_A_SITE=False,negelect_Tot_FCs=False,NW_Strc = False):
+    def __init__(self, xml_file1, SCMAT_1, xml_file2, SCMAT_2, symmetric=False,negelect_A_SITE=False,negelect_Tot_FCs=False,NW_Strc = False,sim_eps=False):
         self.negelect_A_SITE = negelect_A_SITE
         self.xmls_objs = {}
         self.uc_atoms = {}
@@ -41,6 +41,7 @@ class Har_interface:
         self.add_material(xml_file2, SCMAT_2)
         self.symmetric = symmetric
         self.NW_Strc = NW_Strc
+        self.sim_eps = sim_eps
         if self.NW_Strc:
             
             self.Constr_NW()
@@ -396,7 +397,13 @@ class Har_interface:
 
             l_1 = self.SCMATS['0'][2][2] / (self.SCMATS['0'][2][2]+self.SCMATS['1'][2][2])
             l_2 = self.SCMATS['1'][2][2] / (self.SCMATS['0'][2][2]+self.SCMATS['1'][2][2])
-            
+           
+            if self.sim_eps:
+                print('espinf symetric is being applied with number of layer of two materila equal to : ')
+                l_1 = 0.5 
+                l_2 = 0.5
+
+
             eps_xx = l_1*self.xmls_objs['0'].eps_inf[0][0] + \
                 l_2*self.xmls_objs['1'].eps_inf[0][0]
             
